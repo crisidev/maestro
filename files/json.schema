@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://maestro.io",
+  "type": "object",
+  "properties": {
+    "app": {
+      "id": "http://maestro.io/app",
+      "type": "string"
+    },
+    "stages": {
+      "id": "http://maestro.io/stages",
+      "type": "array",
+      "items": {
+        "id": "http://maestro.io/stages/0",
+        "type": "object",
+        "properties": {
+          "name": {
+            "id": "http://maestro.io/stages/0/name",
+            "type": "string"
+          },
+          "components": {
+            "id": "http://maestro.io/stages/0/components",
+            "type": "array",
+            "items": {
+              "id": "http://maestro.io/stages/0/components/0",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "id": "http://maestro.io/stages/0/components/0/name",
+                  "type": "string"
+                },
+                "src": {
+                  "id": "http://maestro.io/stages/0/components/0/src",
+                  "type": "string"
+                },
+                "cmd": {
+                  "id": "http://maestro.io/stages/0/components/0/cmd",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "app",
+    "stages"
+  ]
+}
