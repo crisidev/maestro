@@ -1,0 +1,4 @@
+bindata.go
+*.json*
+.maestro
+maestro
