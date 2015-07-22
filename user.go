@@ -1,0 +1,88 @@
+package main
+
+import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
+)
+
+type MaestroUser struct {
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
+func GetUsername() {
+	Print(username.Username)
+}
+
+func UsernameWizard() {
+	reader := bufio.NewReader(os.Stdin)
+	Print("maestro setup wizard")
+	PrintR("username: ")
+	text, _ := reader.ReadString('\n')
+	username.Username = strings.Split(text, "\n")[0]
+	PrintR("email: ")
+	text, _ = reader.ReadString('\n')
+	username.Email = strings.Split(text, "\n")[0]
+}
+
+func WriteUsernameFile() {
+	PrintD("writing username details")
+	data, err := json.Marshal(username)
+	if err != nil {
+		PrintF(err)
+	}
+	err = ioutil.WriteFile(userFile, data, 0644)
+	if err != nil {
+		PrintF(err)
+	}
+	PrintD("username details saved into " + userFile)
+}
+
+// manage username creation, loading and saving to file (/home/$USER/.maestro/user.json).
+func SetupUsername() {
+	userFile = fmt.Sprintf("%s/%s", maestroDir, "user.json")
+	PrintD("user json config file is " + userFile)
+	file, err := ioutil.ReadFile(userFile)
+	// user config file do not exist. starting wizard.
+	if err != nil {
+		PrintD("user json config file not found, starting wizard")
+		UsernameWizard()
+		WriteUsernameFile()
+	} else {
+		PrintD("user json config file found, loading json")
+		// load username details
+		err = json.Unmarshal(file, &username)
+		if err != nil {
+			PrintF(err)
+		}
+	}
+	PrintD("username " + username.Username)
+}
+
+// redo user creation
+func SetupUsernameRebuild() {
+	PrintD("removing user config files and build directory for " + username.Username)
+	err := os.Remove(userFile)
+	if err != nil {
+		PrintE(err)
+	}
+	err = os.RemoveAll(path.Join(maestroDir, username.Username))
+	if err != nil {
+		PrintE(err)
+	}
+	SetupUsername()
+}
+
+func GetUserOrRebuild() {
+	if *flagUserChange {
+		PrintD("requested user change")
+		SetupUsernameRebuild()
+	} else {
+		GetUsername()
+	}
+}
