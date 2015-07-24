@@ -4,3 +4,9 @@
 [submodule "vagrant/maestro-vagrant-cluster"]
 	path = vagrant/maestro-vagrant-cluster
 	url = git@github.com:crisidev/maestro-vagrant-cluster.git
+[submodule "containers/maestro-spartito"]
+	path = containers/maestro-spartito
+	url = git@github.com:crisidev/maestro-spartito.git
+[submodule "containers/maestro-violino"]
+	path = containers/maestro-violino
+	url = git@github.com:crisidev/maestro-violino.git
