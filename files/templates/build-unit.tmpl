@@ -8,10 +8,10 @@ Requires=violino.service
 TimeoutStartSec=0
 Type=oneshot
 RemainAfterExit=false
-ExecStartPre=/usr/bin/mkdir -p /run/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}
-ExecStartPre-=/usr/bin/git clone {{.GitSrc}} /run/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}}
-ExecStartPre-=/bin/bash -c "cd /run/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}} && git pull"
-ExecStart=/usr/bin/docker build -t {{.Src}} /run/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}}
+ExecStartPre=/usr/bin/mkdir -p /opt/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}}
+ExecStartPre=-/usr/bin/git clone {{.GitSrc}} /opt/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}}
+ExecStartPre=-/bin/bash -c "cd /opt/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}} && git pull"
+ExecStart=/usr/bin/docker build -t {{.Src}} /opt/maestro/containers/{{.Username}}/{{.Stage}}/{{.App}}/{{.Name}}
 ExecStartPost=/usr/bin/docker push {{.Src}}
 
 [Install]

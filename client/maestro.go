@@ -23,7 +23,7 @@ var (
 	flagDebug          = app.Flag("debug", "enable debug mode.").Bool()
 	flagConfigFile     = app.Flag("config", "configuration file").Default("maestro.json").String()
 	flagVolumesDir     = app.Flag("volumesdir", "directory on the coreos host for shared volumes").Default("/var/maestro").String()
-	flagMaestroDir     = app.Flag("buildir", "directory on the local host for temporary storing of information").Default(".maestro").String()
+	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for temporary storing of information").Default(".maestro").String()
 	flagDomain         = app.Flag("domain", "domain used to deal with etcd, skydns, spartito and violino").Default("maestro.io").String()
 	flagFleetEndpoints = app.Flag("etcd", "etcd / fleet endpoints to connect").Default("http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379").String()
 	flagFleetOptions   = app.Flag("fleetopts", "fleetctl options").Strings()
@@ -35,7 +35,7 @@ var (
 
 	// app
 	flagAppRun         = app.Command("run", "run current app on coreos (this will build unit files, submit and run them)")
-	flagAppRunUnit     = flagAppRun.Arg("name", "restrict to one component").String()
+	flagAppRunPath     = flagAppRun.Arg("path", "restrict to one component, using its path on disk").String()
 	flagAppStop        = app.Command("stop", "stop current app without cleaning unit files on coreos")
 	flagAppStopUnit    = flagAppStop.Arg("name", "restrict to one component").String()
 	flagAppNuke        = app.Command("nuke", "stop current app and clean unit files on coreos")
@@ -53,7 +53,9 @@ var (
 	// build
 	flagBuildUnits          = app.Command("build", "locally build app units")
 	flagBuildContainers     = app.Command("buildcontainers", "run a container build and registry push on the cluster")
-	flagBuildContainersUnit = flagBuildContainers.Command("name", "restrict to one component")
+	flagBuildContainersPath = flagBuildContainers.Arg("path", "restrict to one component, using its path on disk").String()
+	flagBuildStatus         = app.Command("buildstatus", "check status of a container build and registry push on the cluster")
+	flagBuildStatusUnit     = flagBuildStatus.Arg("name", "restrict to one component").String()
 )
 
 func main() {
@@ -83,7 +85,9 @@ func main() {
 	case flagBuildUnits.FullCommand():
 		maestro.MaestroBuildLocalUnits()
 	case flagBuildContainers.FullCommand():
-		exitCode = maestro.MaestroBuildContainers()
+		exitCode = maestro.MaestroBuildContainers(*flagBuildContainersPath)
+	case flagBuildStatus.FullCommand():
+		exitCode = maestro.MaestroBuildStatus(*flagBuildStatusUnit)
 
 	// exec
 	case flagExec.FullCommand():
@@ -96,7 +100,7 @@ func main() {
 	case flagAppJournal.FullCommand():
 		exitCode = maestro.MaestroJournal(*flagAppJournalUnit)
 	case flagAppRun.FullCommand():
-		exitCode = maestro.MaestroRun(*flagAppRunUnit)
+		exitCode = maestro.MaestroRun(*flagAppRunPath)
 	case flagAppStop.FullCommand():
 		exitCode = maestro.MaestroStop(*flagAppStopUnit)
 	case flagAppNuke.FullCommand():

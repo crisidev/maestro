@@ -12,10 +12,64 @@ func MaestroBuildLocalUnits() {
 	}
 }
 
-func MaestroBuildContainers() (exitCode int) {
-	for _, stage := range config.Stages {
-		for _, component := range stage.Components {
-			ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
+func MaestroBuildContainers(path string) (exitCode int) {
+	output := make(chan string)
+	exit := make(chan int)
+	if path != "" {
+		go FleetExec([]string{"destroy", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+		output = make(chan string)
+		exit = make(chan int)
+		go FleetExec([]string{"submit", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+		output = make(chan string)
+		exit = make(chan int)
+		go FleetExec([]string{"load", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+		output = make(chan string)
+		exit = make(chan int)
+		go FleetExec([]string{"start", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+	} else {
+		for _, stage := range config.Stages {
+			for _, component := range stage.Components {
+				ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"destroy", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"submit", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"load", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"start", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
+			}
+		}
+	}
+	return
+}
+
+func MaestroBuildStatus(unit string) (exitCode int) {
+	output := make(chan string)
+	exit := make(chan int)
+	if unit != "" {
+		go FleetExec([]string{"status", unit}, output, exit)
+		exitCode += FleetProcessOutput(output, exit, false)
+	} else {
+		for _, stage := range config.Stages {
+			for _, component := range stage.Components {
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"status", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit, false)
+			}
 		}
 	}
 	return
@@ -34,27 +88,42 @@ func IsUnitRunning(unit string) (ret bool) {
 	return
 }
 
-func MaestroRun(unit string) (exitCode int) {
-	for _, stage := range config.Stages {
-		for _, component := range stage.Components {
-			for i := 1; i < component.Scale+1; i++ {
-				unit = config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-				if !IsUnitRunning(unit) {
-					unitPath := config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i))
-					output := make(chan string)
-					exit := make(chan int)
-					go FleetExec([]string{"submit", unitPath}, output, exit)
-					exitCode += FleetProcessOutput(output, exit)
-					output = make(chan string)
-					exit = make(chan int)
-					go FleetExec([]string{"load", unit}, output, exit)
-					exitCode += FleetProcessOutput(output, exit)
-					output = make(chan string)
-					exit = make(chan int)
-					go FleetExec([]string{"start", unit}, output, exit)
-					exitCode += FleetProcessOutput(output, exit)
-				} else {
-					Print("Unit " + unit + " already launched")
+func MaestroRun(path string) (exitCode int) {
+	output := make(chan string)
+	exit := make(chan int)
+	if path != "" {
+		go FleetExec([]string{"submit", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+		output = make(chan string)
+		exit = make(chan int)
+		go FleetExec([]string{"load", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+		output = make(chan string)
+		exit = make(chan int)
+		go FleetExec([]string{"start", path}, output, exit)
+		exitCode += FleetProcessOutput(output, exit)
+	} else {
+		for _, stage := range config.Stages {
+			for _, component := range stage.Components {
+				for i := 1; i < component.Scale+1; i++ {
+					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
+					if !IsUnitRunning(unit) {
+						unitPath := config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i))
+						output = make(chan string)
+						exit = make(chan int)
+						go FleetExec([]string{"submit", unitPath}, output, exit)
+						exitCode += FleetProcessOutput(output, exit)
+						output = make(chan string)
+						exit = make(chan int)
+						go FleetExec([]string{"load", unit}, output, exit)
+						exitCode += FleetProcessOutput(output, exit)
+						output = make(chan string)
+						exit = make(chan int)
+						go FleetExec([]string{"start", unit}, output, exit)
+						exitCode += FleetProcessOutput(output, exit)
+					} else {
+						Print("Unit " + unit + " already launched")
+					}
 				}
 			}
 		}
