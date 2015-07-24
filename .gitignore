@@ -1,4 +1,5 @@
-bindata.go
 *.json*
 .maestro
 maestro
+client/client
+test/.maestro
