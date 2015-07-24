@@ -1,35 +1,45 @@
-package main
+package maestro
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
 	"strconv"
-
-	"github.com/xeipuuv/gojsonschema"
+	"strings"
 )
 
-func ValidateJsonSchema(jsonString string) bool {
-	data, err := Asset("files/json.schema")
-	if err != nil {
-		PrintE(err)
-	}
-	schemaLoader := gojsonschema.NewStringLoader(string(data))
-	documentLoader := gojsonschema.NewReferenceLoader("file://" + *flagConfigFile)
-	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
-	if err != nil {
-		PrintF(err)
-	}
-	if !result.Valid() {
-		PrintE(errors.New("invalid json config"))
-		for _, desc := range result.Errors() {
-			PrintE(errors.New(fmt.Sprintf("- %s\n", desc)))
-		}
-		return false
-	}
-	return true
+//func ValidateJsonSchema(jsonString string) bool {
+//data, err := Asset("files/json.schema")
+//if err != nil {
+//PrintE(err)
+//}
+//schemaLoader := gojsonschema.NewStringLoader(string(data))
+//documentLoader := gojsonschema.NewReferenceLoader("file://" + *flagConfigFile)
+//result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+//if err != nil {
+//PrintF(err)
+//}
+//if !result.Valid() {
+//PrintE(errors.New("invalid json config"))
+//for _, desc := range result.Errors() {
+//PrintE(errors.New(fmt.Sprintf("- %s\n", desc)))
+//}
+//return false
+//}
+//return true
+//}
+var (
+	config             MaestroConfig
+	flagFleetEndpoints string
+	flagFleetOptions   []string
+	flagConfigFile     string
+	flagDebug          bool
+)
+
+func init() {
+	SetupMaestroDir()
+	SetupUsername()
 }
 
 // parse json config file
@@ -54,10 +64,14 @@ func LoadMaestroConfig(path string) MaestroConfig {
 	return jsonConfig
 }
 
-func ParseMaestroConfig() {
-	config = LoadMaestroConfig(*flagConfigFile)
-	config.SetMaestroConfig(*flagDomain)
-	config.SetMaestroComponentConfig(*flagDomain, *flagVolumesDir)
+func ParseMaestroConfig(configFile, domain, volumesDir, fleetEndpoints string, fleetOptions []string, debug bool) MaestroConfig {
+	flagDebug = debug
+	flagFleetOptions = fleetOptions
+	flagFleetEndpoints = fleetEndpoints
+	config = LoadMaestroConfig(configFile)
+	config.SetMaestroConfig(domain)
+	config.SetMaestroComponentConfig(domain, volumesDir)
+	return config
 }
 
 type MaestroComponent struct {
@@ -106,11 +120,11 @@ func (c *MaestroConfig) Print() {
 	configJson, _ := json.MarshalIndent(c, "", "    ")
 	userJson, _ := json.MarshalIndent(username, "", "    ")
 
-	fmt.Printf("fleet endpoints: %s\n", *flagFleetEndpoints)
+	fmt.Printf("fleet endpoints: %s\n", flagFleetEndpoints)
 	fmt.Printf("config and build dir: %s\n", maestroDir)
 	fmt.Printf("user config path: %s/user.json\n", maestroDir)
 	fmt.Println(string(userJson))
-	fmt.Printf("\napp config path: %s\n", *flagConfigFile)
+	fmt.Printf("\napp config path: %s\n", flagConfigFile)
 	fmt.Println(string(configJson))
 }
 
@@ -193,6 +207,8 @@ func (c *MaestroConfig) GetUnitName(stage, component, suffix string) string {
 		return fmt.Sprintf("%s_%s_%s_%s.service", c.Username, stage, c.App, component)
 	} else if suffix == "build" {
 		return fmt.Sprintf("%s_%s_%s_%s-build.service", c.Username, stage, c.App, component)
+	} else if _, err := strconv.Atoi(suffix); err == nil {
+		return fmt.Sprintf("%s_%s_%s_%s@%s", c.Username, stage, c.App, component, suffix)
 	} else {
 		return fmt.Sprintf("%s_%s_%s_%s", c.Username, stage, c.App, component)
 	}
@@ -234,4 +250,12 @@ func (c *MaestroConfig) GetVolumePath(volume, volumesDir string) string {
 
 func (c *MaestroConfig) GetContainerName(stage, component string) string {
 	return fmt.Sprintf("%s%%i", c.GetUnitName(stage, component, ""))
+}
+
+func (c *MaestroConfig) GetUnitDNSame(stage, component string) string {
+	return fmt.Sprintf("%s%%i", c.GetUnitName(stage, component, ""))
+}
+
+func (c *MaestroConfig) GetNumberedUnitPath(path, number string) string {
+	return strings.Replace(path, "@", fmt.Sprintf("@%s", number), 1)
 }

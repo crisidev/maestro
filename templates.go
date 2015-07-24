@@ -1,4 +1,4 @@
-package main
+package maestro
 
 import (
 	"html/template"

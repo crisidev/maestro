@@ -11,7 +11,8 @@ ExecStartPre=-/usr/bin/docker kill {{.ContainerName}}
 ExecStartPre=-/usr/bin/docker rm {{.ContainerName}}
 ExecStartPre=-/usr/bin/docker pull {{.Src}}
 ExecStart=/usr/bin/docker run {{if not .DontRmOnExit}}--rm {{end}}--name {{.ContainerName}} {{range .Ports}}--expose {{.}} {{end}}{{range .Volumes}}-v {{.}} {{end}}{{range .Env}}-e {{.}} {{end}} \
--e MAESTRO_NODE=%H -e MAESTRO_USERNAME={{.Username}} -e MAESTRO_STAGE={{.Stage}} -e MAESTRO_APP={{.App}} -e MAESTRO_COMPONENT={{.Name}} -e MAESTRO_ID=%i -e MAESTRO_FRONTEND={{if .Frontend}}{{.Frontend}}{{end}} -e MAESTRO_PUBLISHED={{if .Published}}{{.Published}}{{end}} \
+-e MAESTRO_NODE=%H -e MAESTRO_USERNAME={{.Username}} -e MAESTRO_STAGE={{.Stage}} -e MAESTRO_APP={{.App}} -e MAESTRO_COMPONENT={{.Name}} -e MAESTRO_ID=%i \
+-e MAESTRO_FRONTEND={{if .Frontend}}{{.Frontend}}{{end}} -e MAESTRO_PUBLISHED={{if .Published}}{{.Published}}{{end}} -e MAESTRO_SCALABLE={{if .Scalable}}{{.Scalable}}{{end}} \
 {{.Src}} {{.Cmd}}
 ExecStop=/usr/bin/docker stop {{.ContainerName}}
 

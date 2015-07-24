@@ -1,4 +1,4 @@
-package main
+package maestro
 
 import (
 	"errors"
@@ -8,6 +8,8 @@ import (
 	"path"
 	"strings"
 )
+
+var maestroDir string
 
 // setup directory (/home/$USER/.maestro) used to store user informations and
 // temporary build file before submitting to coreos. directory will be created if not existent.
@@ -34,10 +36,6 @@ func SetupMaestroAppDirs() {
 	}
 }
 
-func GetNumberedUnitPath(path string, number int) string {
-	return strings.Replace(path, "@", fmt.Sprintf("@%d", number), 1)
-}
-
 // print utils
 func PrintE(err error) {
 	if err != nil {
@@ -60,7 +58,7 @@ func PrintW(out string) {
 }
 
 func PrintD(out string) {
-	if *flagDebug {
+	if flagDebug {
 		if config.App == "" {
 			log.Println(fmt.Sprintf("debug: " + out))
 		} else {
@@ -70,7 +68,7 @@ func PrintD(out string) {
 }
 
 func PrintDC(name, out string) {
-	if *flagDebug {
+	if flagDebug {
 		log.Println(fmt.Sprintf("debug: C %s/%s: %s", config.App, strings.Replace(name, "@", "", 1), out))
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package maestro
 
 import (
 	"bytes"
@@ -17,11 +17,9 @@ func FleetExec(args []string, output chan string, exit chan int) {
 		cmdErr     bytes.Buffer
 		out        string
 	)
-
 	exitCode := -1
-	//cmdOut := &bytes.Buffer{}
-	//cmdErr := &bytes.Buffer{}
-	fleetArgs := []string{"--endpoint", *flagFleetEndpoints}
+	fleetArgs := []string{"--endpoint", flagFleetEndpoints, "--strict-host-key-checking=false"}
+	fleetArgs = append(fleetArgs, flagFleetOptions...)
 	fleetArgs = append(fleetArgs, args...)
 	cmd := exec.Command("fleetctl", fleetArgs...)
 	cmd.Stdout = &cmdOut
@@ -42,8 +40,8 @@ func FleetExec(args []string, output chan string, exit chan int) {
 		// Success
 		waitStatus = cmd.ProcessState.Sys().(syscall.WaitStatus)
 		exitCode = waitStatus.ExitStatus()
-		out = string(cmdOut.Bytes())
 	}
+	out += string(cmdOut.Bytes())
 	PrintD("output: " + out)
 	PrintD("exit code: " + strconv.Itoa(exitCode))
 	output <- out
@@ -51,50 +49,6 @@ func FleetExec(args []string, output chan string, exit chan int) {
 	close(output)
 	close(exit)
 	return
-}
-
-func FleetExecCommand(args []string, output chan string, exit chan int) {
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecStatus(unit string, output chan string, exit chan int) {
-	args := []string{"status", unit}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecJournal(unit string, output chan string, exit chan int) {
-	args := []string{"journal", unit}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecSubmit(unitPath string, output chan string, exit chan int) {
-	args := []string{"submit", unitPath}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecLoad(unitPath string, output chan string, exit chan int) {
-	args := []string{"load", unitPath}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecUnload(unitPath string, output chan string, exit chan int) {
-	args := []string{"unload", unitPath}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecStart(unitPath string, output chan string, exit chan int) {
-	args := []string{"start", unitPath}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecStop(unitPath string, output chan string, exit chan int) {
-	args := []string{"stop", unitPath}
-	go FleetExec(args, output, exit)
-}
-
-func FleetExecDestroy(unitPath string, output chan string, exit chan int) {
-	args := []string{"destroy", unitPath}
-	go FleetExec(args, output, exit)
 }
 
 func FleetProcessOutput(output chan string, exit chan int, trim ...bool) int {

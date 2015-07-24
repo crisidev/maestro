@@ -1,4 +1,4 @@
-package main
+package maestro
 
 import (
 	"bufio"
@@ -8,6 +8,11 @@ import (
 	"os"
 	"path"
 	"strings"
+)
+
+var (
+	username MaestroUser
+	userFile string
 )
 
 type MaestroUser struct {
@@ -78,8 +83,8 @@ func SetupUsernameRebuild() {
 	SetupUsername()
 }
 
-func GetUserOrRebuild() {
-	if *flagUserChange {
+func GetUserOrRebuild(userChange bool) {
+	if userChange {
 		PrintD("requested user change")
 		SetupUsernameRebuild()
 	} else {
