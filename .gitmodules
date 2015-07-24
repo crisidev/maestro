@@ -1,0 +1,3 @@
+[submodule "vagrant/maestro-vagrant-registry"]
+	path = vagrant/maestro-vagrant-registry
+	url = git@github.com:crisidev/maestro-vagrant-registry.git
