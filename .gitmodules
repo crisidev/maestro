@@ -1,3 +1,6 @@
 [submodule "vagrant/maestro-vagrant-registry"]
 	path = vagrant/maestro-vagrant-registry
 	url = git@github.com:crisidev/maestro-vagrant-registry.git
+[submodule "vagrant/maestro-vagrant-cluster"]
+	path = vagrant/maestro-vagrant-cluster
+	url = git@github.com:crisidev/maestro-vagrant-cluster.git
