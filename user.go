@@ -15,6 +15,7 @@ var (
 	userFile string
 )
 
+// MaestroUser structure
 type MaestroUser struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
@@ -24,6 +25,7 @@ func GetUsername() {
 	Print(username.Username)
 }
 
+// Wizard to create a new username.
 func UsernameWizard() {
 	reader := bufio.NewReader(os.Stdin)
 	Print("maestro setup wizard")
@@ -35,6 +37,7 @@ func UsernameWizard() {
 	username.Email = strings.Split(text, "\n")[0]
 }
 
+// Writes username JSON informations onto user file
 func WriteUsernameFile() {
 	PrintD("writing username details")
 	data, err := json.Marshal(username)
@@ -48,7 +51,7 @@ func WriteUsernameFile() {
 	PrintD("username details saved into " + userFile)
 }
 
-// manage username creation, loading and saving to file (/home/$USER/.maestro/user.json).
+// Manages username creation, loading and saving to file.
 func SetupUsername() {
 	userFile = fmt.Sprintf("%s/%s", maestroDir, "user.json")
 	PrintD("user json config file is " + userFile)
@@ -69,7 +72,7 @@ func SetupUsername() {
 	PrintD("username " + username.Username)
 }
 
-// redo user creation
+// Redo user setup
 func SetupUsernameRebuild() {
 	PrintD("removing user config files and build directory for " + username.Username)
 	err := os.Remove(userFile)
@@ -83,6 +86,7 @@ func SetupUsernameRebuild() {
 	SetupUsername()
 }
 
+// Entrypoint for username module
 func GetUserOrRebuild(userChange bool) {
 	if userChange {
 		PrintD("requested user change")

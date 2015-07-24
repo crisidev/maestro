@@ -11,8 +11,9 @@ import (
 
 var maestroDir string
 
-// setup directory (/home/$USER/.maestro) used to store user informations and
-// temporary build file before submitting to coreos. directory will be created if not existent.
+// Setup directory ($CWD/.maestro) used to store user informations and
+// temporary build file before submitting to coreos.
+// Directory will be created if not existent.
 func SetupMaestroDir() {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -25,8 +26,7 @@ func SetupMaestroDir() {
 	}
 }
 
-// created directories for unit file buildint
-// schema: /home/$USER/.maestro/$username/$stage/$app/$component/
+// Creates directories for unit file building. Schema: $CWD/.maestro/$username/$stage/$app
 func SetupMaestroAppDirs() {
 	PrintD("creating build dirs for app and components")
 	os.Mkdir(fmt.Sprintf("%s/%s", maestroDir, config.Username), 0755)
@@ -36,7 +36,7 @@ func SetupMaestroAppDirs() {
 	}
 }
 
-// print utils
+// Print utils
 func PrintE(err error) {
 	if err != nil {
 		Print(fmt.Sprintf("error: %s", err.Error()))

@@ -1,8 +1,12 @@
+// Maestro: a solution to develop and manage unit files on coreos, gently stuffed with service autodiscovery, load balancing, automatic DNS and a nice build system.
 package maestro
 
 import "strconv"
 
-// Build local unit files for all components in configuration
+// All functions in this module creates two channels, output and exit, to allow
+// fleetctl to write on them and will collect and return output and exit code.
+
+// Build local unit files for all components in configuration.
 func MaestroBuildLocalUnits() {
 	for _, stage := range config.Stages {
 		for _, component := range stage.Components {
@@ -12,6 +16,9 @@ func MaestroBuildLocalUnits() {
 	}
 }
 
+// Build local unit files to build new docker images. After the unit is build, it will
+// destroy, submit, load and start using fleetctl. The image will be pushed to the local
+// registry.
 func MaestroBuildContainers(path string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -56,6 +63,7 @@ func MaestroBuildContainers(path string) (exitCode int) {
 	return
 }
 
+// Check and prints the status of all units used to build new docker images.
 func MaestroBuildStatus(unit string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -75,6 +83,7 @@ func MaestroBuildStatus(unit string) (exitCode int) {
 	return
 }
 
+// Utility function to check if a unit is already running on the cluster.
 func IsUnitRunning(unit string) (ret bool) {
 	ret = false
 	output := make(chan string)
@@ -88,6 +97,9 @@ func IsUnitRunning(unit string) (ret bool) {
 	return
 }
 
+// Function used to submit, load and start all the units inside the current app.
+// It can start also a single unit, using `path` argument. If the unit is already running,
+// it will print a message and do nothing.
 func MaestroRun(path string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -131,6 +143,7 @@ func MaestroRun(path string) (exitCode int) {
 	return
 }
 
+// Stops all units in the current app. It can stop also a single unit, using `unit` argument.
 func MaestroStop(unit string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -153,6 +166,7 @@ func MaestroStop(unit string) (exitCode int) {
 	return
 }
 
+// Destroys all units in the current app. It can stop also a single unit, using `unit` argument.
 func MaestroNuke(unit string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -175,6 +189,7 @@ func MaestroNuke(unit string) (exitCode int) {
 	return
 }
 
+// Prints status for all units in the current app It can also get the status of a single unit, using `unit` argument.
 func MaestroStatus(unit string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -197,6 +212,7 @@ func MaestroStatus(unit string) (exitCode int) {
 	return
 }
 
+// Prints the journal for all units in the current app It can also get the journal of a single unit, using `unit` argument.
 func MaestroJournal(unit string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
@@ -221,6 +237,7 @@ func MaestroJournal(unit string) (exitCode int) {
 	return
 }
 
+// Executes a global coreos status, running `list-machines`, `list-units`, `list-unit-files`.
 func MaestroCoreStatus() (exitCode int) {
 	PrintD("executing global status for coreos cluster")
 	argsList := [][]string{[]string{"list-machines"}, []string{"list-units"}, []string{"list-unit-files"}}

@@ -9,26 +9,6 @@ import (
 	"strings"
 )
 
-//func ValidateJsonSchema(jsonString string) bool {
-//data, err := Asset("files/json.schema")
-//if err != nil {
-//PrintE(err)
-//}
-//schemaLoader := gojsonschema.NewStringLoader(string(data))
-//documentLoader := gojsonschema.NewReferenceLoader("file://" + *flagConfigFile)
-//result, err := gojsonschema.Validate(schemaLoader, documentLoader)
-//if err != nil {
-//PrintF(err)
-//}
-//if !result.Valid() {
-//PrintE(errors.New("invalid json config"))
-//for _, desc := range result.Errors() {
-//PrintE(errors.New(fmt.Sprintf("- %s\n", desc)))
-//}
-//return false
-//}
-//return true
-//}
 var (
 	config             MaestroConfig
 	flagFleetEndpoints string
@@ -42,38 +22,18 @@ func init() {
 	SetupUsername()
 }
 
-// parse json config file
-func LoadMaestroConfig(path string) MaestroConfig {
-	jsonConfig := MaestroConfig{}
-	PrintD("maestro json config file is " + path)
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		PrintF(err)
-	}
-	PrintD("maestro json config file found, loading json")
-	err = json.Unmarshal(file, &jsonConfig)
-	if err != nil {
-		PrintF(err)
-	}
-	//PrintD("config loaded, starting validation")
-	//if ValidateJsonSchema(string(file)) {
-	//PrintD("json config valid")
-	//} else {
-	//PrintF(errors.New("json config not valid"))
-	//}
-	return jsonConfig
-}
-
+// Public function used in the main to load the configuration.
 func ParseMaestroConfig(configFile, domain, volumesDir, fleetEndpoints string, fleetOptions []string, debug bool) MaestroConfig {
 	flagDebug = debug
 	flagFleetOptions = fleetOptions
 	flagFleetEndpoints = fleetEndpoints
-	config = LoadMaestroConfig(configFile)
+	config = config.LoadMaestroConfig(configFile)
 	config.SetMaestroConfig(domain)
 	config.SetMaestroComponentConfig(domain, volumesDir)
 	return config
 }
 
+// MaestroComponent structure
 type MaestroComponent struct {
 	Username      string   `json:"username"`
 	Scalable      bool     `json:"scalable"`
@@ -101,6 +61,7 @@ type MaestroComponent struct {
 	ContainerName string   `json:"container_name"`
 }
 
+// MaestroConfig structure
 type MaestroConfig struct {
 	Username  string `json:"username"`
 	Scalable  bool   `json:"scalable"`
@@ -116,6 +77,7 @@ type MaestroConfig struct {
 	} `json:"stages"`
 }
 
+// Simple repr for MaestroConfig struct.
 func (c *MaestroConfig) Print() {
 	configJson, _ := json.MarshalIndent(c, "", "    ")
 	userJson, _ := json.MarshalIndent(username, "", "    ")
@@ -128,7 +90,22 @@ func (c *MaestroConfig) Print() {
 	fmt.Println(string(configJson))
 }
 
-// set defaults
+// Parses JSON config file into MaestroConfig struct.
+func (c *MaestroConfig) LoadMaestroConfig(path string) MaestroConfig {
+	PrintD("maestro json config file is " + path)
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		PrintF(err)
+	}
+	PrintD("maestro json config file found, loading json")
+	err = json.Unmarshal(file, c)
+	if err != nil {
+		PrintF(err)
+	}
+	return *c
+}
+
+// Sets default config values.
 func (c *MaestroConfig) SetMaestroConfig(domain string) {
 	PrintD("analysing maestro app " + c.App)
 	c.Username = username.Username
@@ -146,6 +123,7 @@ func (c *MaestroConfig) SetMaestroConfig(domain string) {
 	}
 }
 
+// Sets components config values.
 func (c *MaestroConfig) SetMaestroComponentConfig(domain, volumesDir string) {
 	// stages and components ids and systemd units names
 	for i, stage := range c.Stages {
@@ -202,6 +180,7 @@ func (c *MaestroConfig) SetMaestroComponentConfig(domain, volumesDir string) {
 	}
 }
 
+// Returns a name for a unit, starting from a `stage`, a `component` and a `suffix`.
 func (c *MaestroConfig) GetUnitName(stage, component, suffix string) string {
 	if suffix == "run" {
 		return fmt.Sprintf("%s_%s_%s_%s.service", c.Username, stage, c.App, component)
@@ -214,6 +193,7 @@ func (c *MaestroConfig) GetUnitName(stage, component, suffix string) string {
 	}
 }
 
+// Returns the prefx for DNS. This is dependent on the scalability of the app.
 func (c *MaestroConfig) GetPrefix() (prefix string) {
 	prefix = "0"
 	if config.Scalable {
@@ -222,40 +202,46 @@ func (c *MaestroConfig) GetPrefix() (prefix string) {
 	return
 }
 
+// Returns a DNS name for a unit (mainly for debugging purposes).
 func (c *MaestroConfig) GetUnitDNS(stage, component, domain string) string {
 	return fmt.Sprintf("%s.%s.%s.%s.%s.%s", c.GetPrefix(), component, c.App, stage, c.Username, domain)
 }
 
+// Returns the local path for a stage (prod, dev, etc).
 func (c *MaestroConfig) GetStagePath(stage string) string {
 	return path.Join(maestroDir, username.Username, stage)
 }
 
+// Returns the local path for an app.
 func (c *MaestroConfig) GetAppPath(stage string) string {
 	return path.Join(c.GetStagePath(stage), c.App)
 }
 
+// Returns the local path for a run unit. A run unit is a component of an application which will be run
+// as docker container on the coreos cluster.
 func (c *MaestroConfig) GetUnitPath(stage, component string) string {
 	ret := path.Join(c.GetAppPath(stage), c.GetUnitName(stage, component, "run"))
 	return ret
 }
 
+// Returns the local path for a build unit. A build unit is an unit used to build a new docker image
+// and make it available on the local registry.
 func (c *MaestroConfig) GetBuildUnitPath(stage, component string) string {
 	ret := path.Join(c.GetAppPath(stage), c.GetUnitName(stage, component, "build"))
 	return ret
 }
 
+// Returns a proper volume path, bound to the shared directory on the node.
 func (c *MaestroConfig) GetVolumePath(volume, volumesDir string) string {
 	return fmt.Sprintf("%s:%s", path.Join(volumesDir, c.Username, c.App, volume), volume)
 }
 
+// Returns the container name for a component (mainly for debugging purposes).
 func (c *MaestroConfig) GetContainerName(stage, component string) string {
 	return fmt.Sprintf("%s%%i", c.GetUnitName(stage, component, ""))
 }
 
-func (c *MaestroConfig) GetUnitDNSame(stage, component string) string {
-	return fmt.Sprintf("%s%%i", c.GetUnitName(stage, component, ""))
-}
-
+// Return a path for a numbered unit, used to start scalable components.
 func (c *MaestroConfig) GetNumberedUnitPath(path, number string) string {
 	return strings.Replace(path, "@", fmt.Sprintf("@%s", number), 1)
 }

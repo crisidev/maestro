@@ -9,7 +9,8 @@ import (
 	"syscall"
 )
 
-// fleetctl execs
+// Wrapper around fleetctl, able to run every command. It uses two channels to communicate
+// output and return code of every command issued.
 func FleetExec(args []string, output chan string, exit chan int) {
 	var (
 		waitStatus syscall.WaitStatus
@@ -51,6 +52,7 @@ func FleetExec(args []string, output chan string, exit chan int) {
 	return
 }
 
+// Process output and exit channel from a fleetctl command.
 func FleetProcessOutput(output chan string, exit chan int, trim ...bool) int {
 	var exitCode int
 	t := true

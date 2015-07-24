@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Return a string containing a template.
 func GetTmpl(name string) string {
 	data, err := Asset("files/templates/" + name)
 	if err != nil {
@@ -13,6 +14,7 @@ func GetTmpl(name string) string {
 	return string(data)
 }
 
+// Renders a template onto a file.
 func ProcessUnitTmpl(component MaestroComponent, unitName, unitPath, tmplName string) {
 	fd := GetUnitFd(unitPath)
 	PrintD("getting template " + tmplName + " from asset data")
@@ -28,6 +30,7 @@ func ProcessUnitTmpl(component MaestroComponent, unitName, unitPath, tmplName st
 	fd.Close()
 }
 
+// Return a file descriptor to be used to render a template.
 func GetUnitFd(filepath string) *os.File {
 	fd, err := os.Create(filepath)
 	if err != nil {
