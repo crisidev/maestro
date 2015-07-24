@@ -3,10 +3,10 @@
 all: clean build
 
 build:
-	go-bindata -pkg maestro files/...
+	go-bindata -pkg maestro templates
 	go build .
-	cd client && go build . && cd ..
-	mv client/client maestro
+	cd cmd && go build . && cd ..
+	mv cmd/cmd maestro
 
 clean:
 	rm -rf maestro bindata.go

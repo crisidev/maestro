@@ -7,7 +7,7 @@ import (
 
 // Return a string containing a template.
 func GetTmpl(name string) string {
-	data, err := Asset("files/templates/" + name)
+	data, err := Asset("templates/" + name)
 	if err != nil {
 		PrintE(err)
 	}
