@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/user"
 	"path"
 	"strconv"
 	"strings"
@@ -15,18 +17,34 @@ var (
 	flagFleetOptions   []string
 	flagConfigFile     string
 	flagDebug          bool
+	maestroDir         string
 )
 
-func init() {
-	SetupMaestroDir()
-	SetupUsername()
+// Setup directory ($CWD/.maestro) used to store user informations and
+// temporary build file before submitting to coreos.
+// Directory will be created if not existent.
+func SetupMaestroDir(dir string) {
+	if dir == "" {
+		user, err := user.Current()
+		if err != nil {
+			PrintF(err)
+		}
+		dir = user.HomeDir
+	}
+	maestroDir = path.Join(dir, ".maestro")
+	if _, err := os.Stat(maestroDir); err != nil {
+		PrintD(maestroDir + " not found, creating")
+		os.Mkdir(maestroDir, 0755)
+	}
 }
 
 // Public function used in the main to load the configuration.
-func ParseMaestroConfig(configFile, domain, volumesDir, fleetEndpoints string, fleetOptions []string, debug bool) MaestroConfig {
+func ParseMaestroConfig(configFile, maestroDir, domain, volumesDir, fleetEndpoints string, fleetOptions []string, debug bool) MaestroConfig {
 	flagDebug = debug
 	flagFleetOptions = fleetOptions
 	flagFleetEndpoints = fleetEndpoints
+	SetupMaestroDir(maestroDir)
+	SetupUsername()
 	config = config.LoadMaestroConfig(configFile)
 	config.SetMaestroConfig(domain)
 	config.SetMaestroComponentConfig(domain, volumesDir)
@@ -103,6 +121,16 @@ func (c *MaestroConfig) LoadMaestroConfig(path string) MaestroConfig {
 		PrintF(err)
 	}
 	return *c
+}
+
+// Creates directories for unit file building. Schema: $CWD/.maestro/$username/$stage/$app
+func (c *MaestroConfig) SetupMaestroAppDirs() {
+	PrintD("creating build dirs for app and components")
+	os.Mkdir(fmt.Sprintf("%s/%s", maestroDir, c.Username), 0755)
+	for _, stage := range c.Stages {
+		os.Mkdir(path.Join(maestroDir, c.Username, stage.Name), 0755)
+		os.Mkdir(path.Join(maestroDir, c.Username, stage.Name, c.App), 0755)
+	}
 }
 
 // Sets default config values.

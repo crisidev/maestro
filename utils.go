@@ -5,36 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strings"
 )
-
-var maestroDir string
-
-// Setup directory ($CWD/.maestro) used to store user informations and
-// temporary build file before submitting to coreos.
-// Directory will be created if not existent.
-func SetupMaestroDir() {
-	cwd, err := os.Getwd()
-	if err != nil {
-		PrintF(err)
-	}
-	maestroDir = fmt.Sprintf("%s/%s", cwd, ".maestro")
-	if _, err := os.Stat(maestroDir); err != nil {
-		PrintD(maestroDir + " not found, creating")
-		os.Mkdir(maestroDir, 0755)
-	}
-}
-
-// Creates directories for unit file building. Schema: $CWD/.maestro/$username/$stage/$app
-func SetupMaestroAppDirs() {
-	PrintD("creating build dirs for app and components")
-	os.Mkdir(fmt.Sprintf("%s/%s", maestroDir, config.Username), 0755)
-	for _, stage := range config.Stages {
-		os.Mkdir(path.Join(maestroDir, config.Username, stage.Name), 0755)
-		os.Mkdir(path.Join(maestroDir, config.Username, stage.Name, config.App), 0755)
-	}
-}
 
 // Print utils
 func PrintE(err error) {

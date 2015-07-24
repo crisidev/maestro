@@ -23,7 +23,7 @@ var (
 	flagDebug          = app.Flag("debug", "enable debug mode.").Bool()
 	flagConfigFile     = app.Flag("config", "configuration file").Default("maestro.json").String()
 	flagVolumesDir     = app.Flag("volumesdir", "directory on the coreos host for shared volumes").Default("/var/maestro").String()
-	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for temporary storing of information").Default(".maestro").String()
+	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for configs and temporary files (default to $USER/.maestro)").String()
 	flagDomain         = app.Flag("domain", "domain used to deal with etcd, skydns, spartito and violino").Default("maestro.io").String()
 	flagFleetEndpoints = app.Flag("etcd", "etcd / fleet endpoints to connect").Default("http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379").String()
 	flagFleetOptions   = app.Flag("fleetopts", "fleetctl options").Strings()
@@ -67,9 +67,9 @@ func main() {
 		fmt.Printf("error: %s", err.Error())
 		os.Exit(1)
 	}
-	maestro.SetupUsername()
-	config = maestro.ParseMaestroConfig(*flagConfigFile, *flagDomain, *flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
-	maestro.SetupMaestroAppDirs()
+	config = maestro.ParseMaestroConfig(*flagConfigFile, *flagMaestroDir, *flagDomain,
+		*flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
+	config.SetupMaestroAppDirs()
 
 	// command switch
 	exitCode = 0

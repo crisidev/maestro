@@ -1,7 +1,11 @@
 // Maestro: a solution to develop and manage unit files on coreos, gently stuffed with service autodiscovery, load balancing, automatic DNS and a nice build system.
 package maestro
 
-import "strconv"
+import (
+	"errors"
+	"os"
+	"strconv"
+)
 
 // All functions in this module creates two channels, output and exit, to allow
 // fleetctl to write on them and will collect and return output and exit code.
@@ -121,6 +125,9 @@ func MaestroRun(path string) (exitCode int) {
 					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
 					if !IsUnitRunning(unit) {
 						unitPath := config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i))
+						if _, err := os.Stat(component.UnitPath); err != nil {
+							PrintF(errors.New("maybe you forgot to run maestro build..."))
+						}
 						output = make(chan string)
 						exit = make(chan int)
 						go FleetExec([]string{"submit", unitPath}, output, exit)
