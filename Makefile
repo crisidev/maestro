@@ -1,6 +1,6 @@
-.PHONY=all build clean
+.PHONY=all build clean test
 
-all: build
+all: clean build
 
 build:
 	go-bindata -pkg maestro files/...
@@ -10,3 +10,6 @@ build:
 
 clean:
 	rm -rf maestro bindata.go
+
+test:
+	cd tests && go test && cd ..
