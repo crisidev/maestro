@@ -13,3 +13,6 @@
 [submodule "containers/maestro-prometheus"]
 	path = containers/maestro-prometheus
 	url = git@github.com:crisidev/maestro-prometheus.git
+[submodule "containers/maestro-grafana"]
+	path = containers/maestro-grafana
+	url = git@github.com:crisidev/maestro-grafana.git

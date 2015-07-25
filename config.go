@@ -86,8 +86,6 @@ type MaestroConfig struct {
 	Published bool   `json:"published"`
 	App       string `json:"app"`
 	PublicDNS string `json:"public_dns"`
-	Global    bool   `json:"global"`
-	Single    bool   `json:"sigle"`
 	Stages    []struct {
 		Components []MaestroComponent `json:"components"`
 		ID         int                `json:"id"`
@@ -143,12 +141,6 @@ func (c *MaestroConfig) SetMaestroConfig(domain string) {
 		c.PublicDNS = fmt.Sprintf("%s-%s.%s", c.Username, c.App, domain)
 		PrintD("app will be published to " + c.PublicDNS)
 	}
-	if c.Global {
-		PrintD("app is global (X-Fleet Global:true)")
-	}
-	if c.Single {
-		PrintD("app is single (X-Fleet Conflicts)")
-	}
 }
 
 // Sets components config values.
@@ -168,8 +160,6 @@ func (c *MaestroConfig) SetMaestroComponentConfig(domain, volumesDir string) {
 			c.Stages[i].Components[k].Username = username.Username
 			c.Stages[i].Components[k].App = c.App
 			c.Stages[i].Components[k].Stage = stage.Name
-			c.Stages[i].Components[k].Global = c.Global
-			c.Stages[i].Components[k].Single = c.Single
 			c.Stages[i].Components[k].Published = c.Published
 			c.Stages[i].Components[k].ID = k
 

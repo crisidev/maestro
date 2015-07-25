@@ -3,3 +3,4 @@
 maestro
 client/client
 test/.maestro
+bindata.go
