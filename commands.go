@@ -16,6 +16,10 @@ func MaestroBuildLocalUnits() {
 		for _, component := range stage.Components {
 			Print("building component " + username.Username + "/" + config.App + "/" + component.Name)
 			ProcessUnitTmpl(component, component.Name, component.UnitPath, "run-unit.tmpl")
+			if component.BuildUnitPath != "" {
+				Print("building component builder for" + username.Username + "/" + config.App + "/" + component.Name)
+				ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
+			}
 		}
 	}
 }
@@ -44,7 +48,9 @@ func MaestroBuildContainers(path string) (exitCode int) {
 	} else {
 		for _, stage := range config.Stages {
 			for _, component := range stage.Components {
-				ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
+				if _, err := os.Stat(component.BuildUnitPath); err != nil {
+					PrintF(errors.New("maybe you forgot to run maestro build..."))
+				}
 				output = make(chan string)
 				exit = make(chan int)
 				go FleetExec([]string{"destroy", component.BuildUnitPath}, output, exit)
@@ -183,6 +189,10 @@ func MaestroNuke(unit string) (exitCode int) {
 	} else {
 		for _, stage := range config.Stages {
 			for _, component := range stage.Components {
+				output = make(chan string)
+				exit = make(chan int)
+				go FleetExec([]string{"destroy", component.BuildUnitPath}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
 				for i := 1; i < component.Scale+1; i++ {
 					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
 					output = make(chan string)
