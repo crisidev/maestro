@@ -1,0 +1,42 @@
+{
+  "username": "crisidev",
+  "app": "metrics",
+  "stages": [
+    {
+      "name": "prod",
+      "components": [
+        {
+          "name": "prometheus",
+          "dns": "prometheus",
+          "frontend": true,
+          "src": "hub.maestro.io:5000/crisidev/prometheus",
+          "gitsrc": "https://github.com/crisidev/maestro-prometheus",
+          "ports": [9090]
+        },
+        {
+          "name": "grafana",
+          "dns": "grafana",
+          "frontend": true,
+          "src": "hub.maestro.io:5000/crisidev/grafana",
+          "gitsrc": "https://github.com/crisidev/maestro-grafana",
+          "ports": [3001]
+        },
+        {
+          "name": "cadvisor",
+          "frontend": true,
+          "global": true,
+          "dns": "cadvisor",
+          "src": "google/cadvisor:latest",
+          "ports": [8080],
+          "docker_args": "-v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro"
+        },
+        {
+          "name": "exporter",
+          "global": true,
+          "src": "prom/node-exporter",
+          "docker_args": "--net=host"
+        }
+      ]
+    }
+  ]
+}
