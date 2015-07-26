@@ -34,28 +34,30 @@ var (
 	flagExecArgs   = flagExec.Arg("args", "args to fleetclt command").Required().Strings()
 
 	// app
-	flagAppRun         = app.Command("run", "run current app on coreos (this will build unit files, submit and run them)")
-	flagAppRunPath     = flagAppRun.Arg("path", "restrict to one component, using its path on disk").String()
-	flagAppStop        = app.Command("stop", "stop current app without cleaning unit files on coreos")
-	flagAppStopUnit    = flagAppStop.Arg("name", "restrict to one component").String()
-	flagAppNuke        = app.Command("nuke", "stop current app and clean unit files on coreos")
-	flagAppNukeUnit    = flagAppNuke.Arg("name", "restrict to one component").String()
-	flagAppStatus      = app.Command("status", "show the global app status (systemctl status unitfiles)")
-	flagAppStatusUnit  = flagAppStatus.Arg("name", "restrict to one component").String()
-	flagAppJournal     = app.Command("journal", "show the journal (journalctl -xu unit) of one app's component")
-	flagAppJournalUnit = flagAppJournal.Arg("name", "restrict to one component").String()
+	flagRun         = app.Command("run", "run current app on coreos (this will build unit files, submit and run them)")
+	flagRunUnit     = flagRun.Arg("name", "restrict to one component").String()
+	flagStop        = app.Command("stop", "stop current app without cleaning unit files on coreos")
+	flagStopUnit    = flagStop.Arg("name", "restrict to one component").String()
+	flagNuke        = app.Command("nuke", "stop current app and clean unit files on coreos")
+	flagNukeAll     = flagNuke.Flag("all", "stop current app and clean ALL unit files on coreos").Bool()
+	flagNukeUnit    = flagNuke.Arg("name", "restrict to one component").String()
+	flagStatus      = app.Command("status", "show the global app status (systemctl status unitfiles)")
+	flagStatusUnit  = flagStatus.Arg("name", "restrict to one component").String()
+	flagJournal     = app.Command("journal", "show the journal (journalctl -xu unit) of one app's component")
+	flagJournalUnit = flagJournal.Arg("name", "restrict to one component").String()
 
 	// info
-	flagUser       = app.Command("user", "get current user name")
-	flagUserChange = flagUser.Flag("changeuser", "remove current user config and start the wizard again").Bool()
-	flagConfig     = app.Command("config", "print json configuration for current app")
+	flagUser   = app.Command("user", "get current user name")
+	flagConfig = app.Command("config", "print json configuration for current app")
 
 	// build
-	flagBuildUnits          = app.Command("build", "locally build app units")
-	flagBuildContainers     = app.Command("buildcontainers", "run a container build and registry push on the cluster")
-	flagBuildContainersPath = flagBuildContainers.Arg("path", "restrict to one component, using its path on disk").String()
-	flagBuildStatus         = app.Command("buildstatus", "check status of a container build and registry push on the cluster")
-	flagBuildStatusUnit     = flagBuildStatus.Arg("name", "restrict to one component").String()
+	flagBuildUnits      = app.Command("build", "locally build app units")
+	flagBuildImages     = app.Command("buildimages", "run a container build and registry push on the cluster")
+	flagBuildImagesUnit = flagBuildImages.Arg("unit", "restrict to one component").String()
+	flagBuildStatus     = app.Command("buildstatus", "check status of a container build and registry push on the cluster")
+	flagBuildStatusUnit = flagBuildStatus.Arg("name", "restrict to one component").String()
+	flagBuildNuke       = app.Command("buildnuke", "check status of a container build and registry push on the cluster")
+	flagBuildNukeUnit   = flagBuildNuke.Arg("name", "restrict to one component").String()
 )
 
 func main() {
@@ -64,12 +66,11 @@ func main() {
 	fleetExitCode := make(chan int)
 	args, err := app.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Printf("error: %s", err.Error())
+		fmt.Printf("error: %s\n", err.Error())
 		os.Exit(1)
 	}
-	config = maestro.ParseMaestroConfig(*flagConfigFile, *flagMaestroDir, *flagDomain,
+	config = maestro.BuildMaestroConfig(*flagConfigFile, *flagMaestroDir, *flagDomain,
 		*flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
-	config.SetupMaestroAppDirs()
 
 	// command switch
 	exitCode = 0
@@ -79,15 +80,17 @@ func main() {
 	case flagConfig.FullCommand():
 		config.Print()
 	case flagUser.FullCommand():
-		maestro.GetUserOrRebuild(*flagUserChange)
+		config.GetUsername()
 
 	// build
 	case flagBuildUnits.FullCommand():
 		maestro.MaestroBuildLocalUnits()
-	case flagBuildContainers.FullCommand():
-		exitCode = maestro.MaestroBuildContainers(*flagBuildContainersPath)
+	case flagBuildImages.FullCommand():
+		exitCode = maestro.MaestroBuildContainers(*flagBuildImagesUnit)
 	case flagBuildStatus.FullCommand():
 		exitCode = maestro.MaestroBuildStatus(*flagBuildStatusUnit)
+	case flagBuildNuke.FullCommand():
+		exitCode = maestro.MaestroBuildNuke(*flagBuildNukeUnit)
 
 	// exec
 	case flagExec.FullCommand():
@@ -95,16 +98,19 @@ func main() {
 		exitCode = maestro.FleetProcessOutput(fleetOutput, fleetExitCode)
 	case flagCoreStatus.FullCommand():
 		exitCode = maestro.MaestroCoreStatus()
-	case flagAppStatus.FullCommand():
-		exitCode = maestro.MaestroStatus(*flagAppStatusUnit)
-	case flagAppJournal.FullCommand():
-		exitCode = maestro.MaestroJournal(*flagAppJournalUnit)
-	case flagAppRun.FullCommand():
-		exitCode = maestro.MaestroRun(*flagAppRunPath)
-	case flagAppStop.FullCommand():
-		exitCode = maestro.MaestroStop(*flagAppStopUnit)
-	case flagAppNuke.FullCommand():
-		exitCode = maestro.MaestroNuke(*flagAppNukeUnit)
+	case flagStatus.FullCommand():
+		exitCode = maestro.MaestroStatus(*flagStatusUnit)
+	case flagJournal.FullCommand():
+		exitCode = maestro.MaestroJournal(*flagJournalUnit)
+	case flagRun.FullCommand():
+		exitCode = maestro.MaestroRun(*flagRunUnit)
+	case flagStop.FullCommand():
+		exitCode = maestro.MaestroStop(*flagStopUnit)
+	case flagNuke.FullCommand():
+		exitCode = maestro.MaestroNuke(*flagNukeUnit)
+		if *flagNukeAll {
+			exitCode += maestro.MaestroBuildNuke(*flagNukeUnit)
+		}
 	}
 
 	fmt.Printf("global exit code: %d\n", exitCode)
