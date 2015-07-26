@@ -80,6 +80,7 @@ type MaestroComponent struct {
 	Name          string   `json:"name"`
 	Ports         []int    `json:"ports"`
 	Scale         int      `json:"scale"`
+	Single        bool     `json:"single"`
 	Src           string   `json:"src"`
 	Stage         string   `json:"stage"`
 	UnitName      string   `json:"unitname"`
@@ -138,7 +139,8 @@ func (c *MaestroConfig) SetupMaestroAppDirs() {
 }
 
 func (c *MaestroConfig) GetUsername() {
-	Print(c.Username)
+	fmt.Println(c.Username)
+	os.Exit(0)
 }
 
 // Manages username creation, loading and saving to file.

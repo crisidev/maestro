@@ -3,6 +3,7 @@ package maestro
 import (
 	"html/template"
 	"os"
+	"strings"
 )
 
 // Return a string containing a template.
@@ -16,9 +17,16 @@ func GetTmpl(name string) string {
 
 // Renders a template onto a file.
 func ProcessUnitTmpl(component MaestroComponent, unitName, unitPath, tmplName string) {
+	// Little function to cut the domain from the dns
+	funcMap := template.FuncMap{
+		"cutDomain": func(s string) string {
+			return strings.Replace(s, ".maestro.io", "", 1)
+		},
+	}
+
 	fd := GetUnitFd(unitPath)
 	PrintD("getting template " + tmplName + " from asset data")
-	tmpl, err := template.New(unitName).Parse(GetTmpl(tmplName))
+	tmpl, err := template.New(unitName).Funcs(funcMap).Parse(GetTmpl(tmplName))
 	if err != nil {
 		PrintF(err)
 	}
