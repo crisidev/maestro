@@ -1,17 +1,19 @@
 {
-  "username": "crisidev",
   "app": "pinger",
-  "scalable": true,
   "stages": [
     {
       "name": "prod",
       "components": [
         {
-          "scale": 3,
-          "name": "the_pinger",
-          "gitsrc": "https://github.com/crisidev/maestro-busybox",
+          "name": "pinger",
           "src": "hub.maestro.io:5000/crisidev/busybox",
-          "cmd": "ping google.com"
+          "gitsrc": "https://github.com/crisidev/maestro-busybox",
+          "cmd": "ping google.com",
+          "keep_on_exit": true,
+          "volumes": [
+            "/data/mytest",
+            "/data/mytest2"
+          ]
         }
       ]
     }
