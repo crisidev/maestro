@@ -87,6 +87,19 @@ func FleetIsUnitRunning(unitPath string) (ret bool) {
 	return
 }
 
+// Checks if a unit path is valid, either build unit and run unit.
+func FleetCheckPath(unitPath string) {
+	if strings.Contains(unitPath, "@") {
+		split := strings.Split(unitPath, "@")
+		unitPath = fmt.Sprintf("%s@.service", split[0])
+	}
+	if _, err := os.Stat(unitPath); err != nil {
+		PrintF(errors.New("invalid unit or maybe you forgot to run maestro build..."))
+	}
+}
+
+// Function able to run a command on a unit path. Output is processed and printed
+// and fleetctl exit code is returned.
 func FleetExecCommand(cmd, unitPath string) (exitCode int) {
 	trim := true
 	FleetCheckPath(unitPath)
@@ -101,16 +114,7 @@ func FleetExecCommand(cmd, unitPath string) (exitCode int) {
 	return
 }
 
-func FleetCheckPath(unitPath string) {
-	if strings.Contains(unitPath, "@") {
-		split := strings.Split(unitPath, "@")
-		unitPath = fmt.Sprintf("%s@.service", split[0])
-	}
-	if _, err := os.Stat(unitPath); err != nil {
-		PrintF(errors.New("invalid unit or maybe you forgot to run maestro build..."))
-	}
-}
-
+// Wrapper to run a container build on the coreos cluster.
 func FleetBuildUnit(_, unitPath string) (exitCode int) {
 	cmds := []string{"destroy", "submit", "load", "start"}
 	for _, cmd := range cmds {
@@ -119,6 +123,7 @@ func FleetBuildUnit(_, unitPath string) (exitCode int) {
 	return
 }
 
+// Wrapper to run a unit on the coreos cluster.
 func FleetRunUnit(_, unitPath string) (exitCode int) {
 	cmds := []string{"submit", "load", "start"}
 	if !FleetIsUnitRunning(unitPath) {
