@@ -70,6 +70,7 @@ type MaestroComponent struct {
 	Cmd           string   `json:"cmd"`
 	ContainerName string   `json:"container_name"`
 	DNS           string   `json:"dns"`
+	DockerArgs    string   `json:"docker_args"`
 	Env           []string `json:"env"`
 	Frontend      bool     `json:"frontend"`
 	GitSrc        string   `json:"gitsrc"`
@@ -160,6 +161,8 @@ func (c *MaestroConfig) SetupUsername() {
 			}
 		}
 		c.Username = username.Name
+	} else {
+		username.Name = c.Username
 	}
 	PrintD("username " + c.Username)
 }
@@ -201,6 +204,14 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 				component.Scale = 1
 			}
 
+			// global
+			if component.Global {
+				component.Scale = 1
+				if component.DNS != "" {
+					component.DNS = fmt.Sprintf("%s-%%H", component.DNS)
+				}
+			}
+
 			// namespaces info
 			component.Username = c.Username
 			component.App = c.App
@@ -218,11 +229,6 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 
 			// dns
 			component.InternalDNS = c.GetUnitInternalDNS(component, domain)
-			if component.Frontend {
-				if component.DNS == "" {
-					component.DNS = c.GetUnitPublicDNS(component, domain)
-				}
-			}
 
 			// volumes
 			component.VolumesDir = path.Join(volumesDir, c.Username, c.App)
@@ -242,7 +248,7 @@ func (c *MaestroConfig) GetUnitName(component *MaestroComponent, suffix string) 
 	} else if _, err := strconv.Atoi(suffix); err == nil {
 		return fmt.Sprintf("%s_%s_%s_%s@%s", c.Username, component.Stage, c.App, component.Name, suffix)
 	} else {
-		suffix = "0"
+		suffix = "1"
 		if component.Scale > 1 {
 			suffix = "%i"
 		}
@@ -252,16 +258,14 @@ func (c *MaestroConfig) GetUnitName(component *MaestroComponent, suffix string) 
 
 // Returns an inernal DNS name for a unit (mainly for debugging purposes).
 func (c *MaestroConfig) GetUnitInternalDNS(component *MaestroComponent, domain string) string {
-	prefix := "0"
+	prefix := "1"
 	if component.Scale > 1 {
 		prefix = "%i"
 	}
+	if component.Global {
+		prefix = "%H"
+	}
 	return fmt.Sprintf("%s.%s.%s.%s.%s.%s", prefix, component.Name, c.App, component.Stage, c.Username, domain)
-}
-
-// Returns an public DNS name for a unit (mainly for debugging purposes).
-func (c *MaestroConfig) GetUnitPublicDNS(component *MaestroComponent, domain string) string {
-	return fmt.Sprintf("%s-%s-%s-%s.%s", c.Username, component.Stage, c.App, component.Name, domain)
 }
 
 // Returns the local path for an app.
