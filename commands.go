@@ -30,7 +30,7 @@ func MaestroExecBuild(fn MaestroCommand, cmd, unit string) (exitCode int) {
 			if unit != "" {
 				localPath := path.Join(config.GetAppPath(stage.Name), unit)
 				exitCode += fn(cmd, localPath)
-				break
+				return
 			} else {
 				if component.GitSrc != "" {
 					exitCode += fn(cmd, component.BuildUnitPath)
@@ -49,7 +49,7 @@ func MaestroExecRun(fn MaestroCommand, cmd, unit string) (exitCode int) {
 				if unit != "" {
 					localPath := path.Join(config.GetAppPath(stage.Name), unit)
 					exitCode += fn(cmd, localPath)
-					break
+					return
 				} else {
 					exitCode += fn(cmd, config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i)))
 				}

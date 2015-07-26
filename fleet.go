@@ -76,7 +76,11 @@ func FleetProcessOutput(output chan string, exit chan int, trim ...bool) int {
 // Utility function to check if a unit is already running on the cluster.
 func FleetIsUnitRunning(unitPath string) (ret bool) {
 	ret = false
-	exitCode := FleetExecCommand("status", unitPath)
+	output := make(chan string)
+	exit := make(chan int)
+	go FleetExec([]string{"status", unitPath}, output, exit)
+	_ = <-output
+	exitCode := <-exit
 	if exitCode == 0 {
 		ret = true
 	}
@@ -84,11 +88,16 @@ func FleetIsUnitRunning(unitPath string) (ret bool) {
 }
 
 func FleetExecCommand(cmd, unitPath string) (exitCode int) {
+	trim := true
 	FleetCheckPath(unitPath)
 	output := make(chan string)
 	exit := make(chan int)
 	go FleetExec([]string{cmd, unitPath}, output, exit)
-	exitCode += FleetProcessOutput(output, exit)
+	if cmd == "status" || cmd == "journal" {
+		Print("unit " + unitPath)
+		trim = false
+	}
+	exitCode += FleetProcessOutput(output, exit, trim)
 	return
 }
 
@@ -116,6 +125,8 @@ func FleetRunUnit(_, unitPath string) (exitCode int) {
 		for _, cmd := range cmds {
 			exitCode += FleetExecCommand(cmd, unitPath)
 		}
+	} else {
+		Print("unit " + unitPath + " already running")
 	}
 	return
 }
