@@ -2,256 +2,106 @@
 package maestro
 
 import (
-	"errors"
-	"os"
+	"path"
 	"strconv"
 )
-
-// All functions in this module creates two channels, output and exit, to allow
-// fleetctl to write on them and will collect and return output and exit code.
 
 // Build local unit files for all components in configuration.
 func MaestroBuildLocalUnits() {
 	for _, stage := range config.Stages {
 		for _, component := range stage.Components {
-			Print("building component " + username.Username + "/" + config.App + "/" + component.Name)
+			Print("building component " + config.Username + "/" + config.App + "/" + component.Name)
 			ProcessUnitTmpl(component, component.Name, component.UnitPath, "run-unit.tmpl")
 			if component.BuildUnitPath != "" {
-				Print("building component builder for" + username.Username + "/" + config.App + "/" + component.Name)
+				Print("building component docker image builder for " + config.Username + "/" + config.App + "/" + component.Name)
 				ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
 			}
 		}
 	}
 }
 
-// Build local unit files to build new docker images. After the unit is build, it will
-// destroy, submit, load and start using fleetctl. The image will be pushed to the local
-// registry.
-func MaestroBuildContainers(path string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if path != "" {
-		go FleetExec([]string{"destroy", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-		output = make(chan string)
-		exit = make(chan int)
-		go FleetExec([]string{"submit", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-		output = make(chan string)
-		exit = make(chan int)
-		go FleetExec([]string{"load", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-		output = make(chan string)
-		exit = make(chan int)
-		go FleetExec([]string{"start", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				if _, err := os.Stat(component.BuildUnitPath); err != nil {
-					PrintF(errors.New("maybe you forgot to run maestro build..."))
+// Function passed to commands
+type MaestroCommand func(string, string) int
+
+// Exec an arbitrary function on a build unit
+func MaestroExecBuild(fn MaestroCommand, cmd, unit string) (exitCode int) {
+	for _, stage := range config.Stages {
+		for _, component := range stage.Components {
+			if unit != "" {
+				localPath := path.Join(config.GetAppPath(stage.Name), unit)
+				exitCode += fn(cmd, localPath)
+				break
+			} else {
+				if component.GitSrc != "" {
+					exitCode += fn(cmd, component.BuildUnitPath)
 				}
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"destroy", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"submit", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"load", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"start", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
 			}
 		}
 	}
 	return
+}
+
+// Exec an arbitrary function on a run unit
+func MaestroExecRun(fn MaestroCommand, cmd, unit string) (exitCode int) {
+	for _, stage := range config.Stages {
+		for _, component := range stage.Components {
+			for i := 1; i < component.Scale+1; i++ {
+				if unit != "" {
+					localPath := path.Join(config.GetAppPath(stage.Name), unit)
+					exitCode += fn(cmd, localPath)
+					break
+				} else {
+					exitCode += fn(cmd, config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i)))
+				}
+			}
+		}
+	}
+	return
+}
+
+// Build local unit files to build new docker images. After the unit is build, it will
+// destroy, submit, load and start using fleetctl. The image will be pushed to the local
+// registry.
+func MaestroBuildContainers(unit string) (exitCode int) {
+	return MaestroExecBuild(FleetBuildUnit, "", unit)
 }
 
 // Check and prints the status of all units used to build new docker images.
 func MaestroBuildStatus(unit string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if unit != "" {
-		go FleetExec([]string{"status", unit}, output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"status", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit, false)
-			}
-		}
-	}
-	return
+	return MaestroExecBuild(FleetExecCommand, "status", unit)
 }
 
-// Utility function to check if a unit is already running on the cluster.
-func IsUnitRunning(unit string) (ret bool) {
-	ret = false
-	output := make(chan string)
-	exit := make(chan int)
-	go FleetExec([]string{"status", unit}, output, exit)
-	_ = <-output
-	exitCode := <-exit
-	if exitCode == 0 {
-		ret = true
-	}
-	return
+// Destroys all units used for building docker images. It can stop also a single unit, using `unit` argument.
+func MaestroBuildNuke(unit string) (exitCode int) {
+	return MaestroExecBuild(FleetExecCommand, "destroy", unit)
 }
 
 // Function used to submit, load and start all the units inside the current app.
-// It can start also a single unit, using `path` argument. If the unit is already running,
+// It can start also a single unit, using `unit` argument. If the unit is already running,
 // it will print a message and do nothing.
-func MaestroRun(path string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if path != "" {
-		go FleetExec([]string{"submit", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-		output = make(chan string)
-		exit = make(chan int)
-		go FleetExec([]string{"load", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-		output = make(chan string)
-		exit = make(chan int)
-		go FleetExec([]string{"start", path}, output, exit)
-		exitCode += FleetProcessOutput(output, exit)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				for i := 1; i < component.Scale+1; i++ {
-					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-					if !IsUnitRunning(unit) {
-						unitPath := config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i))
-						if _, err := os.Stat(component.UnitPath); err != nil {
-							PrintF(errors.New("maybe you forgot to run maestro build..."))
-						}
-						output = make(chan string)
-						exit = make(chan int)
-						go FleetExec([]string{"submit", unitPath}, output, exit)
-						exitCode += FleetProcessOutput(output, exit)
-						output = make(chan string)
-						exit = make(chan int)
-						go FleetExec([]string{"load", unit}, output, exit)
-						exitCode += FleetProcessOutput(output, exit)
-						output = make(chan string)
-						exit = make(chan int)
-						go FleetExec([]string{"start", unit}, output, exit)
-						exitCode += FleetProcessOutput(output, exit)
-					} else {
-						Print("Unit " + unit + " already launched")
-					}
-				}
-			}
-		}
-	}
-	return
+func MaestroRun(unit string) (exitCode int) {
+	MaestroBuildLocalUnits()
+	return MaestroExecRun(FleetRunUnit, "", unit)
 }
 
 // Stops all units in the current app. It can stop also a single unit, using `unit` argument.
 func MaestroStop(unit string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if unit != "" {
-		go FleetExec([]string{"stop", unit}, output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				for i := 1; i < component.Scale+1; i++ {
-					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-					output := make(chan string)
-					exit := make(chan int)
-					go FleetExec([]string{"stop", unit}, output, exit)
-					exitCode += FleetProcessOutput(output, exit)
-				}
-			}
-		}
-	}
-	return
+	return MaestroExecRun(FleetExecCommand, "stop", unit)
 }
 
 // Destroys all units in the current app. It can stop also a single unit, using `unit` argument.
 func MaestroNuke(unit string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if unit != "" {
-		go FleetExec([]string{"destroy", unit}, output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				output = make(chan string)
-				exit = make(chan int)
-				go FleetExec([]string{"destroy", component.BuildUnitPath}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
-				for i := 1; i < component.Scale+1; i++ {
-					unit := config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-					output = make(chan string)
-					exit = make(chan int)
-					go FleetExec([]string{"destroy", unit}, output, exit)
-					exitCode += FleetProcessOutput(output, exit)
-				}
-			}
-		}
-	}
-	return
+	return MaestroExecRun(FleetExecCommand, "destroy", unit)
 }
 
 // Prints status for all units in the current app It can also get the status of a single unit, using `unit` argument.
 func MaestroStatus(unit string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	if unit != "" {
-		go FleetExec([]string{"status", unit}, output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				for i := 1; i < component.Scale+1; i++ {
-					unit = config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-					output = make(chan string)
-					exit = make(chan int)
-					go FleetExec([]string{"status", unit}, output, exit)
-					exitCode += FleetProcessOutput(output, exit, false)
-				}
-			}
-		}
-	}
-	return
+	return MaestroExecRun(FleetExecCommand, "status", unit)
 }
 
 // Prints the journal for all units in the current app It can also get the journal of a single unit, using `unit` argument.
 func MaestroJournal(unit string) (exitCode int) {
-	output := make(chan string)
-	exit := make(chan int)
-	args := []string{"journal"}
-	if unit != "" {
-		go FleetExec(append(args, unit), output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
-	} else {
-		for _, stage := range config.Stages {
-			for _, component := range stage.Components {
-				for i := 1; i < component.Scale+1; i++ {
-					unit = config.GetUnitName(stage.Name, component.Name, strconv.Itoa(i))
-					output := make(chan string)
-					exit := make(chan int)
-					Print("maestro unit: " + unit + "\n")
-					go FleetExec(append(args, unit), output, exit)
-					exitCode += FleetProcessOutput(output, exit, false)
-				}
-			}
-		}
-	}
-	return
+	return MaestroExecRun(FleetExecCommand, "journal", unit)
 }
 
 // Executes a global coreos status, running `list-machines`, `list-units`, `list-unit-files`.
