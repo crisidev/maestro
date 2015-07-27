@@ -1,4 +1,5 @@
 # Maestro Makefile
+UNAME := $(shell uname -s)
 
 .PHONY=all build clean test install uninstall start-registry stop-registry start-cluster stop-cluster
 
@@ -8,6 +9,10 @@ start-registry: build install
 start-cluster: build install start-registry
 
 link:
+ifeq ($(UNAME), Darwin)
+		mkdir -p ${HOME}/.maestro-share/maestro
+		mkdir -p ${HOME}/.maestro-share/docker
+endif
 	ln -s config/maestro-metrics.json maestro.json || echo "continuing..."
 	cd vagrant/maestro-vagrant-registry && ln -s user-data.sample user-data || echo "continuing..." && cd -
 	cd vagrant/maestro-vagrant-cluster && ln -s user-data.sample user-data || echo "continuing..." && cd -
