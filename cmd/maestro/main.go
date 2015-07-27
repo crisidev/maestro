@@ -21,7 +21,6 @@ var (
 
 	// global
 	flagDebug          = app.Flag("debug", "enable debug mode").Short('d').Bool()
-	flagVersion        = app.Flag("version", "print version").Short('v').Bool()
 	flagConfigFile     = app.Flag("config", "configuration file").Short('c').Default("maestro.json").String()
 	flagVolumesDir     = app.Flag("volumesdir", "directory on the coreos host for shared volumes").Short('V').Default("/var/maestro").String()
 	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for configs and temporary files (default to $USER/.maestro)").Short('m').String()
