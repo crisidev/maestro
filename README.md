@@ -1,4 +1,5 @@
 # Maestro
+![maestro](https://raw.githubusercontent.com/crisidev/maestro/master/maestro.jpg)
 ## A smart deploy system for lazy software developers
 Maestro is a development system able to build and deploy applications (docker images) on a distrubuted CoreOS cluster. Applications are described using a simple JSON configuration and converted into runnable Fleet units and all the burden about namespaces, DNS, container linking, etc is automatically handled by Maestro
 
