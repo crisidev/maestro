@@ -30,6 +30,16 @@ Install [Vagrant](https://www.vagrantup.com/) and [Fleetctl](https://github.com/
 $ git clone https://github.com/crisidev/maestro
 $ cd maestro
 $ make
+go clean .
+go clean ./cmd/maestro
+rm -rf maestro bindata.go
+ln -s config/maestro-metrics.json maestro.json || echo "continuing..."
+ln -s vagrant/maestro-vagrant-registry/user-data.sample vagrant/maestro-vagrant-registry/user-data || echo "continuing..."
+ln -s vagrant/maestro-vagrant-cluster/user-data.sample vagrant/maestro-vagrant-cluster/user-data || echo "continuing..."
+go-bindata -pkg maestro templates
+go build .
+go build ./cmd/maestro
+go install ./cmd/maestro
 $ maestro
 usage: maestro [<flags>] <command> [<args> ...]
 
