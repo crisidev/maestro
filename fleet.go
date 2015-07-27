@@ -11,6 +11,16 @@ import (
 	"syscall"
 )
 
+const fleetctl = "fleetctl"
+
+// Checks if fleetctl is available on the system.
+func FleetCheckExec() {
+	_, err := exec.LookPath(fleetctl)
+	if err != nil {
+		PrintF(err)
+	}
+}
+
 // Wrapper around fleetctl, able to run every command. It uses two channels to communicate
 // output and return code of every command issued.
 func FleetExec(args []string, output chan string, exit chan int) {
@@ -21,10 +31,17 @@ func FleetExec(args []string, output chan string, exit chan int) {
 		out        string
 	)
 	exitCode := -1
-	fleetArgs := []string{"--endpoint", flagFleetEndpoints, "--strict-host-key-checking=false"}
-	fleetArgs = append(fleetArgs, flagFleetOptions...)
+	fleetArgs := []string{"--strict-host-key-checking=false"}
+	if fleetEndpoints == "" {
+		fleetArgs = append(fleetArgs, "--tunnel")
+		fleetArgs = append(fleetArgs, fleetAddress)
+	} else {
+		fleetArgs = append(fleetArgs, "--endpoint")
+		fleetArgs = append(fleetArgs, fleetEndpoints)
+	}
+	fleetArgs = append(fleetArgs, fleetOptions...)
 	fleetArgs = append(fleetArgs, args...)
-	cmd := exec.Command("fleetctl", fleetArgs...)
+	cmd := exec.Command(fleetctl, fleetArgs...)
 	cmd.Stdout = &cmdOut
 	cmd.Stderr = &cmdErr
 	if strings.HasPrefix(args[0], "list-") {
@@ -33,6 +50,7 @@ func FleetExec(args []string, output chan string, exit chan int) {
 		PrintD(fmt.Sprintf("running %s", strings.Join(cmd.Args, " ")))
 	}
 	if err := cmd.Run(); err != nil {
+		PrintE(err)
 		if exitError, ok := err.(*exec.ExitError); ok {
 			waitStatus = exitError.Sys().(syscall.WaitStatus)
 			exitCode = waitStatus.ExitStatus()
