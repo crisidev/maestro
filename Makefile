@@ -9,8 +9,8 @@ start-cluster: build install start-registry
 
 link:
 	ln -s config/maestro-metrics.json maestro.json || echo "continuing..."
-	ln -s vagrant/maestro-vagrant-registry/user-data.sample vagrant/maestro-vagrant-registry/user-data || echo "continuing..."
-	ln -s vagrant/maestro-vagrant-cluster/user-data.sample vagrant/maestro-vagrant-cluster/user-data || echo "continuing..."
+	cd vagrant/maestro-vagrant-registry && ln -s user-data.sample user-data || echo "continuing..." && cd -
+	cd vagrant/maestro-vagrant-cluster && ln -s user-data.sample user-data || echo "continuing..." && cd -
 
 build-go:
 	go-bindata -pkg maestro templates
