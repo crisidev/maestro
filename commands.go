@@ -2,8 +2,11 @@
 package maestro
 
 import (
+	"bufio"
+	"os"
 	"path"
 	"strconv"
+	"strings"
 )
 
 // Build local unit files for all components in configuration.
@@ -113,6 +116,31 @@ func MaestroCoreStatus() (exitCode int) {
 		exit := make(chan int)
 		go FleetExec(args, output, exit)
 		exitCode += FleetProcessOutput(output, exit, false)
+	}
+	return
+}
+
+func MaestroNukeAll() (exitCode int) {
+	reader := bufio.NewReader(os.Stdin)
+	var out string
+	output := make(chan string)
+	exit := make(chan int)
+	go FleetExec([]string{"list-unit-files"}, output, exit)
+	out = <-output
+	exitCode = <-exit
+	num := len(strings.Split(out, "\n"))
+	PrintR("are you sure you want to nuke ALL " + strconv.Itoa(num) + " units on this cluster? [y/N] ")
+	text, _ := reader.ReadString('\n')
+	if text == "y\n" || text == "Y\n" {
+		for _, line := range strings.Split(out, "\n") {
+			if strings.Contains(line, "service") {
+				split := strings.Fields(line)
+				output := make(chan string)
+				exit := make(chan int)
+				go FleetExec([]string{"destroy", split[0]}, output, exit)
+				exitCode += FleetProcessOutput(output, exit)
+			}
+		}
 	}
 	return
 }

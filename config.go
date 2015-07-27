@@ -312,7 +312,7 @@ func (c *MaestroConfig) GetAfterUnit(name string) (after string) {
 	for _, stage := range c.Stages {
 		for _, component := range stage.Components {
 			if component.Name == name {
-				after = fmt.Sprintf("%s*.service", component.UnitName)
+				after = fmt.Sprintf("%s%%i.service", component.UnitName)
 			}
 		}
 	}

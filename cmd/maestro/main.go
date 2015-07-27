@@ -112,9 +112,10 @@ func main() {
 	case flagStop.FullCommand():
 		exitCode = maestro.MaestroStop(*flagStopUnit)
 	case flagNuke.FullCommand():
-		exitCode = maestro.MaestroNuke(*flagNukeUnit)
 		if *flagNukeAll {
-			exitCode += maestro.MaestroBuildNuke(*flagNukeUnit)
+			exitCode += maestro.MaestroNukeAll()
+		} else {
+			exitCode = maestro.MaestroNuke(*flagNukeUnit)
 		}
 	}
 
