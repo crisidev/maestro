@@ -125,7 +125,7 @@ Let's say we want to run a complete monitoring system for Maestro, using [Promet
           "src": "hub.maestro.io:5000/crisidev/prometheus",
           "gitsrc": "https://github.com/crisidev/maestro-prometheus",
           "ports": [9090],
-          "volumes: [
+          "volumes": [
             "/sharedvol"
           ]
         },
@@ -136,7 +136,7 @@ Let's say we want to run a complete monitoring system for Maestro, using [Promet
           "src": "hub.maestro.io:5000/crisidev/grafana",
           "gitsrc": "https://github.com/crisidev/maestro-grafana",
           "ports": [3001],
-           "volumes: [
+           "volumes": [
             "/sharedvol"
            ]
         },
