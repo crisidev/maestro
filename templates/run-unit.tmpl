@@ -3,6 +3,8 @@ Description=Maestro Component {{.ContainerName}}
 After=docker.service
 After=violino.service
 Requires=violino.service
+{{if .After}}After={{.After}}
+Requires={{.After}}{{end}}
 
 [Service]
 TimeoutStartSec=0

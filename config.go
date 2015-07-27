@@ -43,14 +43,17 @@ func SetupMaestroDir(dir string) {
 	}
 }
 
-// Public function used in the main to load the configuration.
-func BuildMaestroConfig(configFile, maestroDir, domainName, volumesPath, fleetEndpoints string, fleetOptions []string, debug bool) MaestroConfig {
+func Init(maestroDir, domainName, volumesPath, fleetEndpoints string, fleetOptions []string, debug bool) {
 	flagDebug = debug
 	flagFleetOptions = fleetOptions
 	flagFleetEndpoints = fleetEndpoints
 	domain = domainName
 	volumesDir = volumesPath
 	SetupMaestroDir(maestroDir)
+}
+
+// Public function used in the main to load the configuration.
+func BuildMaestroConfig(configFile string) MaestroConfig {
 	config = config.LoadMaestroConfig(configFile)
 	config.SetupUsername()
 	//config.SetMaestroConfig(domain)
@@ -65,6 +68,7 @@ type MaestroUser struct {
 
 // MaestroComponent structure
 type MaestroComponent struct {
+	After         string   `json:"after"`
 	App           string   `json:"app"`
 	BuildUnitPath string   `json:"build_unitpath"`
 	Cmd           string   `json:"cmd"`
@@ -220,7 +224,7 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 			component.Stage = stage.Name
 
 			// names
-			component.UnitName = c.GetUnitName(component, "")
+			component.UnitName = c.GetUnitName(component, "@")
 			component.ContainerName = c.GetContainerName(component)
 
 			// paths
@@ -237,6 +241,11 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 			for j, volume := range component.Volumes {
 				component.Volumes[j] = c.GetVolumePath(volume, volumesDir)
 			}
+
+			// after info
+			if component.After != "" {
+				component.After = c.GetAfterUnit(component.After)
+			}
 		}
 	}
 }
@@ -249,6 +258,8 @@ func (c *MaestroConfig) GetUnitName(component *MaestroComponent, suffix string) 
 		return fmt.Sprintf("%s_%s_%s_%s-build.service", c.Username, component.Stage, c.App, component.Name)
 	} else if _, err := strconv.Atoi(suffix); err == nil {
 		return fmt.Sprintf("%s_%s_%s_%s@%s", c.Username, component.Stage, c.App, component.Name, suffix)
+	} else if suffix == "@" {
+		return fmt.Sprintf("%s_%s_%s_%s%s", c.Username, component.Stage, c.App, component.Name, suffix)
 	} else {
 		suffix = "1"
 		if component.Scale > 1 {
@@ -295,4 +306,15 @@ func (c *MaestroConfig) GetContainerName(component *MaestroComponent) string {
 // Return a path for a numbered unit, used to start scalable components.
 func (c *MaestroConfig) GetNumberedUnitPath(path, number string) string {
 	return strings.Replace(path, "@", fmt.Sprintf("@%s", number), 1)
+}
+
+func (c *MaestroConfig) GetAfterUnit(name string) (after string) {
+	for _, stage := range c.Stages {
+		for _, component := range stage.Components {
+			if component.Name == name {
+				after = fmt.Sprintf("%s*.service", component.UnitName)
+			}
+		}
+	}
+	return
 }
