@@ -13,16 +13,17 @@ import (
 )
 
 var (
-	config             MaestroConfig
-	username           MaestroUser
-	flagDebug          bool
-	domain             string
-	flagFleetEndpoints string
-	flagConfigFile     string
-	maestroDir         string
-	userFile           string
-	volumesDir         string
-	flagFleetOptions   []string
+	config         MaestroConfig
+	username       MaestroUser
+	flagDebug      bool
+	domain         string
+	fleetAddress   string
+	fleetEndpoints string
+	fleetOptions   []string
+	configFile     string
+	maestroDir     string
+	userFile       string
+	volumesDir     string
 )
 
 // Setup directory ($CWD/.maestro) used to store user informations and
@@ -43,12 +44,15 @@ func SetupMaestroDir(dir string) {
 	}
 }
 
-func Init(maestroDir, domainName, volumesPath, fleetEndpoints string, fleetOptions []string, debug bool) {
+func Init(maestroDir, domainName, address, volumes, endpoints string, options []string, debug bool) {
+	FleetCheckExec()
+	EtcdCheckExec()
+	fleetAddress = address
 	flagDebug = debug
-	flagFleetOptions = fleetOptions
-	flagFleetEndpoints = fleetEndpoints
+	fleetOptions = options
+	fleetEndpoints = endpoints
 	domain = domainName
-	volumesDir = volumesPath
+	volumesDir = volumes
 	SetupMaestroDir(maestroDir)
 }
 
@@ -109,11 +113,11 @@ func (c *MaestroConfig) Print() {
 	configJson, _ := json.MarshalIndent(c, "", "    ")
 	userJson, _ := json.MarshalIndent(username, "", "    ")
 
-	fmt.Printf("fleet endpoints: %s\n", flagFleetEndpoints)
+	fmt.Printf("fleet endpoints: %s\n", fleetEndpoints)
 	fmt.Printf("config and build dir: %s\n", maestroDir)
 	fmt.Printf("user config path: %s/user.json\n", maestroDir)
 	fmt.Println(string(userJson))
-	fmt.Printf("\napp config path: %s\n", flagConfigFile)
+	fmt.Printf("\napp config path: %s\n", configFile)
 	fmt.Println(string(configJson))
 }
 
@@ -239,7 +243,7 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 			// volumes
 			component.VolumesDir = path.Join(volumesDir, c.Username, c.App)
 			for j, volume := range component.Volumes {
-				component.Volumes[j] = c.GetVolumePath(volume, volumesDir)
+				component.Volumes[j] = c.GetVolumePath(stage.Name, volume, volumesDir)
 			}
 
 			// after info
@@ -294,8 +298,8 @@ func (c *MaestroConfig) GetUnitPath(component *MaestroComponent, suffix string) 
 }
 
 // Returns a proper volume path, bound to the shared directory on the node.
-func (c *MaestroConfig) GetVolumePath(volume, volumesDir string) string {
-	return fmt.Sprintf("%s:%s", path.Join(volumesDir, c.Username, c.App, volume), volume)
+func (c *MaestroConfig) GetVolumePath(stage, volume, volumesDir string) string {
+	return fmt.Sprintf("%s:%s", path.Join(volumesDir, c.Username, stage, c.App, volume), volume)
 }
 
 // Returns the container name for a component (mainly for debugging purposes).
