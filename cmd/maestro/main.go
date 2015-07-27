@@ -69,8 +69,18 @@ func main() {
 		fmt.Printf("error: %s\n", err.Error())
 		os.Exit(1)
 	}
-	config = maestro.BuildMaestroConfig(*flagConfigFile, *flagMaestroDir, *flagDomain,
+	// initialize maestro
+	maestro.Init(*flagMaestroDir, *flagDomain,
 		*flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
+
+	if args == "corestatus" {
+		os.Exit(maestro.MaestroCoreStatus())
+	}
+	if args == "exec" {
+		go maestro.FleetExec(*flagExecArgs, fleetOutput, fleetExitCode)
+		os.Exit(maestro.FleetProcessOutput(fleetOutput, fleetExitCode))
+	}
+	config = maestro.BuildMaestroConfig(*flagConfigFile)
 
 	// command switch
 	exitCode = 0
@@ -93,11 +103,6 @@ func main() {
 		exitCode = maestro.MaestroBuildNuke(*flagBuildNukeUnit)
 
 	// exec
-	case flagExec.FullCommand():
-		go maestro.FleetExec(*flagExecArgs, fleetOutput, fleetExitCode)
-		exitCode = maestro.FleetProcessOutput(fleetOutput, fleetExitCode)
-	case flagCoreStatus.FullCommand():
-		exitCode = maestro.MaestroCoreStatus()
 	case flagStatus.FullCommand():
 		exitCode = maestro.MaestroStatus(*flagStatusUnit)
 	case flagJournal.FullCommand():
