@@ -1,14 +1,12 @@
 package maestro
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 const fleetctl = "fleetctl"
@@ -21,8 +19,9 @@ func FleetCheckExec() {
 	}
 }
 
-func FleetPrepareCmd(args []string) (cmd *exec.Cmd) {
-	fleetArgs := []string{"--strict-host-key-checking=false"}
+// Prepares fleetctl arguments with info based from command line
+func FleetPrepareArgs(args []string) (fleetArgs []string) {
+	fleetArgs = []string{"--strict-host-key-checking=false"}
 	if fleetEndpoints == "" {
 		fleetArgs = append(fleetArgs, "--tunnel")
 		fleetArgs = append(fleetArgs, fleetAddress)
@@ -32,61 +31,21 @@ func FleetPrepareCmd(args []string) (cmd *exec.Cmd) {
 	}
 	fleetArgs = append(fleetArgs, fleetOptions...)
 	fleetArgs = append(fleetArgs, args...)
-	cmd = exec.Command(fleetctl, fleetArgs...)
 	return
 }
 
 // Wrapper around fleetctl, able to run every command. It uses two channels to communicate
 // output and return code of every command issued.
 func FleetExec(args []string, output chan string, exit chan int) {
-	var (
-		exitCode   int
-		waitStatus syscall.WaitStatus
-	)
-	cmd := FleetPrepareCmd(args)
+	var exitCode int
+	fleetArgs := FleetPrepareArgs(args)
+	cmd := exec.Command(fleetctl, fleetArgs...)
 	if strings.HasPrefix(args[0], "list-") {
 		Print(fmt.Sprintf("running %s", strings.Join(cmd.Args, " ")))
 	} else {
 		PrintD(fmt.Sprintf("running %s", strings.Join(cmd.Args, " ")))
 	}
-
-	cmdOut, err := cmd.StdoutPipe()
-	if err != nil {
-		PrintDE(err)
-	}
-	cmdErr, err := cmd.StderrPipe()
-	if err != nil {
-		PrintDE(err)
-	}
-
-	scannerOut := bufio.NewScanner(cmdOut)
-	scannerErr := bufio.NewScanner(cmdErr)
-	go func() {
-		for scannerOut.Scan() {
-			output <- scannerOut.Text()
-		}
-		for scannerErr.Scan() {
-			output <- scannerErr.Text()
-		}
-		close(output)
-	}()
-
-	if err := cmd.Start(); err != nil {
-		if err != nil {
-			PrintDE(err)
-		}
-	}
-
-	if err := cmd.Wait(); err != nil {
-		if err != nil {
-			PrintDE(err)
-		}
-		if exitError, ok := err.(*exec.ExitError); ok {
-			waitStatus = exitError.Sys().(syscall.WaitStatus)
-			exitCode = waitStatus.ExitStatus()
-		}
-	}
-
+	exitCode = MaestroExec(cmd, output)
 	PrintD("exit code: " + strconv.Itoa(exitCode))
 	exit <- exitCode
 	close(exit)

@@ -4,9 +4,11 @@ package maestro
 import (
 	"bufio"
 	"os"
+	"os/exec"
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // Build local unit files for all components in configuration.
@@ -128,24 +130,59 @@ func MaestroCoreStatus() (exitCode int) {
 
 func MaestroNukeAll() (exitCode int) {
 	reader := bufio.NewReader(os.Stdin)
-	var out string
 	output := make(chan string)
 	exit := make(chan int)
 	go FleetExec([]string{"list-unit-files"}, output, exit)
-	out = <-output
-	exitCode = <-exit
-	num := len(strings.Split(out, "\n"))
-	PrintR("are you sure you want to nuke ALL " + strconv.Itoa(num) + " units on this cluster? [y/N] ")
+	PrintR("are you sure you want to nuke ALL units on this cluster? [y/N] ")
 	text, _ := reader.ReadString('\n')
 	if text == "y\n" || text == "Y\n" {
-		for _, line := range strings.Split(out, "\n") {
+		for line := range output {
+			line = string(line)
 			if strings.Contains(line, "service") {
 				split := strings.Fields(line)
-				output := make(chan string)
-				exit := make(chan int)
-				go FleetExec([]string{"destroy", split[0]}, output, exit)
-				exitCode += FleetProcessOutput(output, exit)
+				localOutput := make(chan string)
+				localExit := make(chan int)
+				go FleetExec([]string{"destroy", split[0]}, localOutput, localExit)
+				exitCode += FleetProcessOutput(localOutput, localExit)
 			}
+		}
+	}
+	exitCode = <-exit
+	return
+}
+
+func MaestroExec(cmd *exec.Cmd, output chan string) (exitCode int) {
+	cmdOut, err := cmd.StdoutPipe()
+	if err != nil {
+		PrintDE(err)
+	}
+	cmdErr, err := cmd.StderrPipe()
+	if err != nil {
+		PrintDE(err)
+	}
+	scannerOut := bufio.NewScanner(cmdOut)
+	scannerErr := bufio.NewScanner(cmdErr)
+	go func() {
+		for scannerOut.Scan() {
+			output <- scannerOut.Text()
+		}
+		for scannerErr.Scan() {
+			output <- scannerErr.Text()
+		}
+		close(output)
+	}()
+	if err := cmd.Start(); err != nil {
+		if err != nil {
+			PrintDE(err)
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		if err != nil {
+			PrintDE(err)
+		}
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus := exitError.Sys().(syscall.WaitStatus)
+			exitCode = waitStatus.ExitStatus()
 		}
 	}
 	return
