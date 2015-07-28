@@ -15,10 +15,10 @@ import (
 func MaestroBuildLocalUnits() {
 	for _, stage := range config.Stages {
 		for _, component := range stage.Components {
-			Print("building component " + config.Username + "/" + config.App + "/" + component.Name)
+			lg.Out("building run unit for " + lg.r(config.Username) + "/" + lg.y(stage.Name) + "/" + lg.g(config.App) + "/" + lg.b(component.Name))
 			ProcessUnitTmpl(component, component.Name, component.UnitPath, "run-unit.tmpl")
 			if component.BuildUnitPath != "" {
-				Print("building component docker image builder for " + config.Username + "/" + config.App + "/" + component.Name)
+				lg.Out("building build unit for " + lg.r(config.Username) + "/" + lg.y(stage.Name) + "/" + lg.g(config.App) + "/" + lg.b(component.Name))
 				ProcessUnitTmpl(component, component.Name, component.BuildUnitPath, "build-unit.tmpl")
 			}
 		}
@@ -34,13 +34,20 @@ func MaestroExecBuild(fn MaestroCommand, cmd, unit string) (exitCode int) {
 		for _, component := range stage.Components {
 			if unit != "" {
 				localPath := path.Join(config.GetAppPath(stage.Name), unit)
+				if cmd == "status" {
+					lg.Out(lg.b("maestro ") + "unit: " + unit)
+				}
 				exitCode += fn(cmd, localPath)
 				return
 			} else {
 				if component.GitSrc != "" {
+					if cmd == "status" {
+						lg.Out(lg.b("maestro ") + "unit: " + component.UnitName)
+					}
 					exitCode += fn(cmd, component.BuildUnitPath)
 				}
 			}
+			lg.Out("")
 		}
 	}
 	return
@@ -52,10 +59,16 @@ func MaestroExecRun(fn MaestroCommand, cmd, unit string) (exitCode int) {
 		for _, component := range stage.Components {
 			for i := 1; i < component.Scale+1; i++ {
 				if unit != "" {
+					if cmd == "status" {
+						lg.Out(lg.b("maestro ") + "unit: " + unit)
+					}
 					localPath := path.Join(config.GetAppPath(stage.Name), unit)
 					exitCode += fn(cmd, localPath)
 					return
 				} else {
+					if cmd == "status" {
+						lg.Out(lg.b("maestro ") + "unit: " + component.UnitName + strconv.Itoa(i))
+					}
 					exitCode += fn(cmd, config.GetNumberedUnitPath(component.UnitPath, strconv.Itoa(i)))
 				}
 			}
@@ -117,13 +130,17 @@ func MaestroJournal(unit string, follow, all bool) (exitCode int) {
 
 // Executes a global coreos status, running `list-machines`, `list-units`, `list-unit-files`.
 func MaestroCoreStatus() (exitCode int) {
-	PrintD("executing global status for coreos cluster")
+	lg.Out("executing global status for coreos cluster")
 	argsList := [][]string{[]string{"list-machines"}, []string{"list-units"}, []string{"list-unit-files"}}
-	for _, args := range argsList {
+	for i, args := range argsList {
 		output := make(chan string)
 		exit := make(chan int)
+		lg.Out(lg.b("maestro ") + "running fleetctl " + strings.Join(args, " "))
 		go FleetExec(args, output, exit)
 		exitCode += FleetProcessOutput(output, exit)
+		if i < 3 {
+			lg.Out("")
+		}
 	}
 	return
 }
@@ -132,12 +149,11 @@ func MaestroNukeAll() (exitCode int) {
 	reader := bufio.NewReader(os.Stdin)
 	output := make(chan string)
 	exit := make(chan int)
-	go FleetExec([]string{"list-unit-files"}, output, exit)
-	PrintR("are you sure you want to nuke ALL units on this cluster? [y/N] ")
+	lg.OutRaw(lg.r("are you sure you want to nuke ALL units on this cluster? [y/N] "))
 	text, _ := reader.ReadString('\n')
 	if text == "y\n" || text == "Y\n" {
+		go FleetExec([]string{"list-unit-files"}, output, exit)
 		for line := range output {
-			line = string(line)
 			if strings.Contains(line, "service") {
 				split := strings.Fields(line)
 				localOutput := make(chan string)
@@ -151,14 +167,14 @@ func MaestroNukeAll() (exitCode int) {
 	return
 }
 
-func MaestroExec(cmd *exec.Cmd, output chan string) (exitCode int) {
+func MaestroCommandExec(cmd *exec.Cmd, output chan string) (exitCode int) {
 	cmdOut, err := cmd.StdoutPipe()
 	if err != nil {
-		PrintDE(err)
+		lg.DebugError(err)
 	}
 	cmdErr, err := cmd.StderrPipe()
 	if err != nil {
-		PrintDE(err)
+		lg.DebugError(err)
 	}
 	scannerOut := bufio.NewScanner(cmdOut)
 	scannerErr := bufio.NewScanner(cmdErr)
@@ -172,13 +188,11 @@ func MaestroExec(cmd *exec.Cmd, output chan string) (exitCode int) {
 		close(output)
 	}()
 	if err := cmd.Start(); err != nil {
-		if err != nil {
-			PrintDE(err)
-		}
+		lg.DebugError(err)
 	}
 	if err := cmd.Wait(); err != nil {
 		if err != nil {
-			PrintDE(err)
+			lg.DebugError(err)
 		}
 		if exitError, ok := err.(*exec.ExitError); ok {
 			waitStatus := exitError.Sys().(syscall.WaitStatus)
@@ -186,4 +200,13 @@ func MaestroExec(cmd *exec.Cmd, output chan string) (exitCode int) {
 		}
 	}
 	return
+}
+
+func HandleExit(exitCode int) {
+	if exitCode > 0 {
+		lg.Out(lg.b("maestro ") + "exit code: " + lg.r(strconv.Itoa(exitCode)))
+	} else {
+		lg.Out(lg.b("maestro ") + "exit code: " + lg.g(strconv.Itoa(exitCode)))
+	}
+	os.Exit(exitCode)
 }

@@ -32,14 +32,12 @@ var (
 func SetupMaestroDir(dir string) {
 	if dir == "" {
 		user, err := user.Current()
-		if err != nil {
-			PrintF(err)
-		}
+		lg.Fatal(err)
 		dir = user.HomeDir
 	}
 	maestroDir = path.Join(dir, ".maestro")
 	if _, err := os.Stat(maestroDir); err != nil {
-		PrintD(maestroDir + " not found, creating")
+		lg.Debug(maestroDir + " not found, creating")
 		os.Mkdir(maestroDir, 0755)
 	}
 }
@@ -49,6 +47,9 @@ func Init(maestroDir, domainName, address, volumes, endpoints string, options []
 	EtcdCheckExec()
 	fleetAddress = address
 	flagDebug = debug
+	if debug {
+		lg.SetupDebug()
+	}
 	fleetOptions = options
 	fleetEndpoints = endpoints
 	domain = domainName
@@ -57,10 +58,11 @@ func Init(maestroDir, domainName, address, volumes, endpoints string, options []
 }
 
 // Public function used in the main to load the configuration.
-func BuildMaestroConfig(configFile string) MaestroConfig {
+func BuildMaestroConfig(cfg string) MaestroConfig {
+	configFile = cfg
 	config = config.LoadMaestroConfig(configFile)
+	lg.SetupBase()
 	config.SetupUsername()
-	//config.SetMaestroConfig(domain)
 	config.SetupMaestroAppDirs()
 	config.SetMaestroComponentConfig()
 	return config
@@ -113,41 +115,38 @@ func (c *MaestroConfig) Print() {
 	configJson, _ := json.MarshalIndent(c, "", "    ")
 	userJson, _ := json.MarshalIndent(username, "", "    ")
 
-	fmt.Printf("fleet endpoints: %s\n", fleetEndpoints)
-	fmt.Printf("config and build dir: %s\n", maestroDir)
-	fmt.Printf("user config path: %s/user.json\n", maestroDir)
-	fmt.Println(string(userJson))
-	fmt.Printf("\napp config path: %s\n", configFile)
-	fmt.Println(string(configJson))
+	lg.Out(lg.b("config and build dir: ") + maestroDir)
+	lg.Out(lg.b("user config path: ") + maestroDir + "/user.json")
+	lg.Out(string(userJson))
+	lg.Out(lg.b("app config path: ") + configFile)
+	lg.Out(string(configJson))
 }
 
 // Parses JSON config file into MaestroConfig struct.
 func (c *MaestroConfig) LoadMaestroConfig(path string) MaestroConfig {
-	PrintD("maestro json config file is " + path)
+	lg.Debug2("maestro json config file is ", path)
 	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		PrintF(err)
-	}
-	PrintD("maestro json config file found, loading json")
+	lg.Fatal(err)
+	lg.Debug("maestro json config file found, loading json")
 	err = json.Unmarshal(file, c)
-	if err != nil {
-		PrintF(err)
-	}
+	lg.Fatal(err)
 	return *c
 }
 
 // Creates directories for unit file building. Schema: $CWD/.maestro/$username/$stage/$app
 func (c *MaestroConfig) SetupMaestroAppDirs() {
-	PrintD("creating build dirs for app and components")
+	lg.Debug("creating build dirs for app and components")
 	os.Mkdir(fmt.Sprintf("%s/%s", maestroDir, c.Username), 0755)
 	for _, stage := range c.Stages {
 		os.Mkdir(path.Join(maestroDir, c.Username, stage.Name), 0755)
-		os.Mkdir(path.Join(maestroDir, c.Username, stage.Name, c.App), 0755)
+		appDir := path.Join(maestroDir, c.Username, stage.Name, c.App)
+		lg.Debug2("creating app dir", appDir, stage.Name)
+		os.Mkdir(appDir, 0755)
 	}
 }
 
 func (c *MaestroConfig) GetUsername() {
-	fmt.Println(c.Username)
+	lg.Out(c.Username)
 	os.Exit(0)
 }
 
@@ -155,49 +154,43 @@ func (c *MaestroConfig) GetUsername() {
 func (c *MaestroConfig) SetupUsername() {
 	if c.Username == "" {
 		userFile = path.Join(maestroDir, "user.json")
-		Print("username missing in config. using default from " + userFile)
+		lg.Out("username missing in config. using default from " + lg.b(userFile))
 		file, err := ioutil.ReadFile(userFile)
 		// user config file do not exist. starting wizard.
 		if err != nil {
-			PrintD("user json config file not found, starting wizard")
+			lg.Debug("user json config file not found, starting wizard")
 			c.UsernameWizard()
 			c.WriteUsernameFile()
 		} else {
-			PrintD("user json config file found, loading json")
+			lg.Debug("user json config file found, loading json")
 			// load username details
 			err = json.Unmarshal(file, &username)
-			if err != nil {
-				PrintF(err)
-			}
+			lg.Fatal(err)
 		}
 		c.Username = username.Name
 	} else {
 		username.Name = c.Username
 	}
-	PrintD("username " + c.Username)
+	lg.Debug("username " + lg.b(c.Username))
 }
 
 // Wizard to create a new username.
 func (c *MaestroConfig) UsernameWizard() {
 	reader := bufio.NewReader(os.Stdin)
-	Print("maestro setup wizard")
-	PrintR("username: ")
+	lg.Out("maestro setup wizard")
+	lg.OutRaw("username: ")
 	text, _ := reader.ReadString('\n')
 	username.Name = strings.Split(text, "\n")[0]
 }
 
 // Writes username JSON informations onto user file
 func (c *MaestroConfig) WriteUsernameFile() {
-	PrintD("writing username details")
+	lg.Debug("writing username details for " + username.Name)
 	data, err := json.Marshal(username)
-	if err != nil {
-		PrintF(err)
-	}
+	lg.Fatal(err)
 	err = ioutil.WriteFile(userFile, data, 0644)
-	if err != nil {
-		PrintF(err)
-	}
-	PrintD("username details saved into " + userFile)
+	lg.Fatal(err)
+	lg.Debug("username details saved into " + userFile)
 }
 
 // Sets components config values.
@@ -206,19 +199,26 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 	for i, _ := range c.Stages {
 		stage := &c.Stages[i]
 		// stage id
-		PrintD("stage " + stage.Name + ", id:" + strconv.Itoa(i))
+		lg.Debug("setting up components config for stage ", stage.Name)
 		for k, _ := range stage.Components {
 			component := &stage.Components[k]
 			// scale
 			if component.Scale == 0 {
+				lg.Debug("setting scale to 1, is has to be at least 1", stage.Name, component.Name)
 				component.Scale = 1
+			}
+			// dns
+			if component.DNS != "" {
+				lg.Debug("dns is set, component will be published to "+component.DNS, stage.Name, component.Name)
 			}
 
 			// global
 			if component.Global {
+				lg.Debug("component is global, setting scale to 1", stage.Name, component.Name)
 				component.Scale = 1
 				if component.DNS != "" {
 					component.DNS = fmt.Sprintf("%s-%%H", component.DNS)
+					lg.Debug2("dns is set with global, overriding to", component.DNS, stage.Name, component.Name)
 				}
 			}
 
@@ -229,26 +229,33 @@ func (c *MaestroConfig) SetMaestroComponentConfig() {
 
 			// names
 			component.UnitName = c.GetUnitName(component, "@")
+			lg.Debug2("unit name", component.UnitName, stage.Name, component.Name)
 			component.ContainerName = c.GetContainerName(component)
+			lg.Debug2("container name", component.ContainerName, stage.Name, component.Name)
 
 			// paths
 			component.UnitPath = c.GetUnitPath(component, "run")
+			lg.Debug2("unit local path", component.UnitPath, stage.Name, component.Name)
 			if component.GitSrc != "" {
 				component.BuildUnitPath = c.GetUnitPath(component, "build")
+				lg.Debug2("gitsrc is set, build unit local path", component.BuildUnitPath, stage.Name, component.Name)
 			}
 
 			// dns
 			component.InternalDNS = c.GetUnitInternalDNS(component, domain)
+			lg.Debug2("internal dns", component.InternalDNS, stage.Name, component.Name)
 
 			// volumes
 			component.VolumesDir = path.Join(volumesDir, c.Username, c.App)
 			for j, volume := range component.Volumes {
 				component.Volumes[j] = c.GetVolumePath(stage.Name, volume, volumesDir)
+				lg.Debug2("volume", component.Volumes[j], stage.Name, component.Name)
 			}
 
 			// after info
 			if component.After != "" {
 				component.After = c.GetAfterUnit(component.After)
+				lg.Debug2("component will run after, "+component.After, stage.Name, component.Name)
 			}
 		}
 	}

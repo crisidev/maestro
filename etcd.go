@@ -2,7 +2,6 @@ package maestro
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -15,9 +14,10 @@ const (
 
 // Checks if etcdctl is available on the system.
 func EtcdCheckExec() {
+	lg.Debug("checking if etcdctl is in your $PATH", etcdctl)
 	_, err := exec.LookPath(etcdctl)
 	if err != nil {
-		PrintE(errors.New(err.Error() + ". this is not fatal, you can still use fleetctl via ssh"))
+		lg.Error(errors.New(err.Error() + ". this is not fatal, you can still use fleetctl via ssh"))
 	}
 }
 
@@ -38,9 +38,9 @@ func EtcdExec(args []string, output chan string, exit chan int, key string) {
 	var exitCode int
 	etcdArgs := EtcdPrepareArgs(key)
 	cmd := exec.Command(etcdctl, etcdArgs...)
-	PrintD(fmt.Sprintf("running %s", strings.Join(cmd.Args, " ")))
-	exitCode = MaestroExec(cmd, output)
-	PrintD("exit code: " + strconv.Itoa(exitCode))
+	lg.Debug("etcdctl args "+strings.Join(cmd.Args, " "), etcdctl)
+	exitCode = MaestroCommandExec(cmd, output)
+	lg.Debug("exit code: "+strconv.Itoa(exitCode), etcdctl)
 	exit <- exitCode
 	close(exit)
 	return
@@ -51,24 +51,25 @@ func EtcdPullKeys(skydns, all bool, key string) (exitCode int) {
 	output := make(chan string)
 	exit := make(chan int)
 	args := EtcdPrepareArgs(key)
+	lg.Out(lg.b("maestro ") + "running fleetctl" + strings.Join(args, " "))
 	go EtcdExec(args, output, exit, key)
 	for line := range output {
 		line = string(line)
 		if key != "" {
-			Print(strings.Trim(line, "\n"))
+			lg.Out(strings.Trim(line, "\n"))
 		} else {
 			if !all {
 				if strings.HasPrefix(line, "/maestro.io") {
-					Print(line)
+					lg.Out(line)
 				}
 				if skydns {
 					if strings.HasPrefix(line, "/skydns") {
-						Print(line)
+						lg.Out(line)
 					}
 				}
 			} else {
 				if line != "" {
-					Print(line)
+					lg.Out(line)
 				}
 			}
 		}

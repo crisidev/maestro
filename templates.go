@@ -9,9 +9,7 @@ import (
 // Return a string containing a template.
 func GetTmpl(name string) string {
 	data, err := Asset("templates/" + name)
-	if err != nil {
-		PrintE(err)
-	}
+	lg.Fatal(err)
 	return string(data)
 }
 
@@ -25,24 +23,18 @@ func ProcessUnitTmpl(component MaestroComponent, unitName, unitPath, tmplName st
 	}
 
 	fd := GetUnitFd(unitPath)
-	PrintD("getting template " + tmplName + " from asset data")
+	lg.Debug("getting template " + tmplName + " from asset data")
 	tmpl, err := template.New(unitName).Funcs(funcMap).Parse(GetTmpl(tmplName))
-	if err != nil {
-		PrintF(err)
-	}
-	PrintD("processing template into " + unitPath)
+	lg.Fatal(err)
+	lg.Debug("processing template into " + unitPath)
 	err = tmpl.Execute(fd, component)
-	if err != nil {
-		PrintF(err)
-	}
+	lg.Fatal(err)
 	fd.Close()
 }
 
 // Return a file descriptor to be used to render a template.
 func GetUnitFd(filepath string) *os.File {
 	fd, err := os.Create(filepath)
-	if err != nil {
-		PrintE(err)
-	}
+	lg.Fatal(err)
 	return fd
 }
