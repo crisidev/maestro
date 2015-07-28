@@ -26,8 +26,8 @@ var (
 	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for configs and temporary files (default to $USER/.maestro)").Short('m').String()
 	flagDomain         = app.Flag("domain", "domain used to deal with etcd, skydns, spartito and violino").Short('D').Default("maestro.io").String()
 	flagFleetEndpoints = app.Flag("etcd", "etcd / fleet endpoints to connect").Short('e').String()
-	flagFleetOptions   = app.Flag("fleetopts", "fleetctl options").Short('f').Strings()
-	flagFleetAddress   = app.Flag("fleetaddr", "fleetctl tunnel address and port").Default("172.17.8.101").Short('f').String()
+	flagFleetOptions   = app.Flag("fleetopts", "fleetctl options").Short('F').Strings()
+	flagFleetAddress   = app.Flag("fleetaddr", "fleetctl tunnel address and port").Default("172.17.8.101").Short('A').String()
 
 	// cluster
 	flagCoreStatus = app.Command("corestatus", "report coreos cluster status")
@@ -39,17 +39,19 @@ var (
 	flagEtcdAll    = flagEtcd.Flag("all", "get the list of all etcd keys").Short('a').Bool()
 
 	// app
-	flagRun         = app.Command("run", "run current app on coreos (this will build unit files, submit and run them)")
-	flagRunUnit     = flagRun.Arg("name", "restrict to one component").String()
-	flagStop        = app.Command("stop", "stop current app without cleaning unit files on coreos")
-	flagStopUnit    = flagStop.Arg("name", "restrict to one component").String()
-	flagNuke        = app.Command("nuke", "stop current app and clean unit files on coreos")
-	flagNukeAll     = flagNuke.Flag("all", "stop current app and clean ALL unit files on coreos").Short('a').Bool()
-	flagNukeUnit    = flagNuke.Arg("name", "restrict to one component").String()
-	flagStatus      = app.Command("status", "show the global app status (systemctl status unitfiles)")
-	flagStatusUnit  = flagStatus.Arg("name", "restrict to one component").String()
-	flagJournal     = app.Command("journal", "show the journal (journalctl -xu unit) of one app's component")
-	flagJournalUnit = flagJournal.Arg("name", "restrict to one component").String()
+	flagRun           = app.Command("run", "run current app on coreos (this will build unit files, submit and run them)")
+	flagRunUnit       = flagRun.Arg("name", "restrict to one component").String()
+	flagStop          = app.Command("stop", "stop current app without cleaning unit files on coreos")
+	flagStopUnit      = flagStop.Arg("name", "restrict to one component").String()
+	flagNuke          = app.Command("nuke", "stop current app and clean unit files on coreos")
+	flagNukeAll       = flagNuke.Flag("all", "stop current app and clean ALL unit files on coreos").Short('a').Bool()
+	flagNukeUnit      = flagNuke.Arg("name", "restrict to one component").String()
+	flagStatus        = app.Command("status", "show the global app status (systemctl status unitfiles)")
+	flagStatusUnit    = flagStatus.Arg("name", "restrict to one component").String()
+	flagJournal       = app.Command("journal", "show the journal (journalctl -xu unit) of one app's component")
+	flagJournalUnit   = flagJournal.Arg("name", "restrict to one component").String()
+	flagJournalFollow = flagJournal.Flag("follow", "follow component journal").Short('f').Bool()
+	flagJournalAll    = flagJournal.Flag("all", "get all component journal").Bool()
 
 	// info
 	flagUser   = app.Command("user", "get current user name")
@@ -121,7 +123,7 @@ func main() {
 	case flagStatus.FullCommand():
 		exitCode = maestro.MaestroStatus(*flagStatusUnit)
 	case flagJournal.FullCommand():
-		exitCode = maestro.MaestroJournal(*flagJournalUnit)
+		exitCode = maestro.MaestroJournal(*flagJournalUnit, *flagJournalFollow, *flagJournalAll)
 	case flagRun.FullCommand():
 		exitCode = maestro.MaestroRun(*flagRunUnit)
 	case flagStop.FullCommand():

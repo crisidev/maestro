@@ -103,8 +103,14 @@ func MaestroStatus(unit string) (exitCode int) {
 }
 
 // Prints the journal for all units in the current app It can also get the journal of a single unit, using `unit` argument.
-func MaestroJournal(unit string) (exitCode int) {
-	return MaestroExecRun(FleetExecCommand, "journal", unit)
+func MaestroJournal(unit string, follow, all bool) (exitCode int) {
+	cmd := "journal"
+	if follow {
+		cmd = "journalf"
+	} else if all {
+		cmd = "journala"
+	}
+	return MaestroExecRun(FleetExecCommand, cmd, unit)
 }
 
 // Executes a global coreos status, running `list-machines`, `list-units`, `list-unit-files`.
@@ -115,7 +121,7 @@ func MaestroCoreStatus() (exitCode int) {
 		output := make(chan string)
 		exit := make(chan int)
 		go FleetExec(args, output, exit)
-		exitCode += FleetProcessOutput(output, exit, false)
+		exitCode += FleetProcessOutput(output, exit)
 	}
 	return
 }

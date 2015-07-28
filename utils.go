@@ -21,6 +21,15 @@ func PrintF(err error) {
 		os.Exit(1)
 	}
 }
+
+func PrintDE(err error) {
+	if flagDebug {
+		if err != nil {
+			Print(fmt.Sprintf("error: %s", err.Error()))
+		}
+	}
+}
+
 func PrintU() {
 	PrintE(errors.New("command not implemented yet ;)"))
 }
