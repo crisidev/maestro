@@ -88,7 +88,7 @@ Commands:
     show the global app status (systemctl status unitfiles)
 
   journal [<flags>] [<name>]
-    show the journal (journalctl -xu unit) of one app's component
+    show the journal (journalctl -xu unit) of one app s component
 
   user
     get current user name
