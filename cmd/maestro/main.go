@@ -69,8 +69,6 @@ var (
 
 func main() {
 	var exitCode int
-	fleetOutput := make(chan string)
-	fleetExitCode := make(chan int)
 	args, err := app.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Printf("error: %s\n", err.Error())
@@ -85,8 +83,10 @@ func main() {
 	case flagCoreStatus.FullCommand():
 		exitCode = maestro.MaestroCoreStatus()
 	case flagExec.FullCommand():
-		go maestro.FleetExec(*flagExecArgs, fleetOutput, fleetExitCode)
-		exitCode = maestro.FleetProcessOutput(fleetOutput, fleetExitCode)
+		output := make(chan string)
+		exit := make(chan int)
+		go maestro.FleetExec(*flagExecArgs, output, exit)
+		exitCode = maestro.FleetProcessOutput(output, exit)
 	case flagEtcd.FullCommand():
 		exitCode = maestro.EtcdPullKeys(*flagEtcdSkydns, *flagEtcdAll, *flagEtcdKey)
 	}
