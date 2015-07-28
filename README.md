@@ -22,6 +22,15 @@ Maestro is a development system able to build and deploy applications (docker im
 * Make
 * HTML
 
+##### Maestro components / tools / docker containers
+* [Spartito Container](https://github.com/crisidev/maestro-spartito)
+* [Violino Container](https://github.com/crisidev/maestro-violino)
+* [CoreOS Vagrant Registry](https://github.com/crisidev/maestro-vagrant-registry)
+* [CoreOS Vagrant Cluster](https://github.com/crisidev/maestro-vagrant-cluster)
+* [Registry Container](https://github.com/crisidev/maestro-registry)
+* [Prometheus Container](https://github.com/crisidev/maestro-prometheus)
+* [Grafana Container](https://github.com/crisidev/maestro-grafana)
+
 #### Prerequisites
 Install [Vagrant](https://www.vagrantup.com/) and [Fleetctl](https://github.com/coreos/fleet) and [Golang](https://golang.org/) for your architecture.
 
