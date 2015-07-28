@@ -46,20 +46,21 @@ usage: maestro [<flags>] <command> [<args> ...]
 friendly generates and deploy systemd unit files on a CoreOS maestro cluster https://github.com/crisidev/maestro
 
 Flags:
-  --help       Show help (also see --help-long and --help-man).
-  -d, --debug  enable debug mode
+  --help           Show help (also see --help-long and --help-man).
+  -d, --debug      enable debug mode
   -c, --config="maestro.json"
-               configuration file
-  -V, --volumesdir="/var/maestro"
-               directory on the coreos host for shared volumes
+                   configuration file
+  -V, --volumesdir="/share/maestro"
+                   directory on the coreos host for shared volumes
   -m, --maestrodir=MAESTRODIR
-               directory on the local host for configs and temporary files (default to $USER/.maestro)
-  -D, --domain="maestro.io"
-               domain used to deal with etcd, skydns, spartito and violino
-  -e, --etcd="http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379"
-               etcd / fleet endpoints to connect
-  -f, --fleetopts=FLEETOPTS
-               fleetctl options
+                   directory on the local host for configs and temporary files (default to $USER/.maestro)
+  --domain="maestro.io"
+                   domain used to deal with etcd, skydns, spartito and violino
+  -e, --etcd=ETCD  etcd / fleet endpoints to connect
+  -F, --fleetopts=FLEETOPTS
+                   fleetctl options
+  -A, --fleetaddr="172.17.8.101"
+                   fleetctl tunnel address and port
 
 Commands:
   help [<command>...]
@@ -67,28 +68,43 @@ Commands:
 
   corestatus
     report coreos cluster status
+
   exec <args>...
     exec an arbitrary command through fleet, returning output as stdout and exit code
+
+  etcd [<flags>] [<name>]
+    get maestro related list of keys from etcd
+
   run [<name>]
     run current app on coreos (this will build unit files, submit and run them)
+
   stop [<name>]
     stop current app without cleaning unit files on coreos
+
   nuke [<flags>] [<name>]
     stop current app and clean unit files on coreos
+
   status [<name>]
     show the global app status (systemctl status unitfiles)
-  journal [<name>]
-    show the journal (journalctl -xu unit) of one apps component
+
+  journal [<flags>] [<name>]
+    show the journal (journalctl -xu unit) of one app's component
+
   user
     get current user name
+
   config
     print json configuration for current app
+
   build
     locally build app units
+
   buildimages [<unit>]
     run a container build and registry push on the cluster
+
   buildstatus [<name>]
     check status of a container build and registry push on the cluster
+
   buildnuke [<name>]
     check status of a container build and registry push on the cluster
 ```
