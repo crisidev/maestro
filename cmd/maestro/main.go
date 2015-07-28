@@ -20,11 +20,11 @@ var (
 	app    = kingpin.New(APP_NAME, fmt.Sprintf("friendly generates and deploy systemd unit files on a CoreOS maestro cluster %s", APP_SITE))
 
 	// global
-	flagDebug          = app.Flag("debug", "enable debug mode").Short('D').Bool()
+	flagDebug          = app.Flag("debug", "enable debug mode").Short('d').Bool()
 	flagConfigFile     = app.Flag("config", "configuration file").Short('c').Default("maestro.json").String()
 	flagVolumesDir     = app.Flag("volumesdir", "directory on the coreos host for shared volumes").Short('V').Default("/share/maestro").String()
 	flagMaestroDir     = app.Flag("maestrodir", "directory on the local host for configs and temporary files (default to $USER/.maestro)").Short('m').String()
-	flagDomain         = app.Flag("domain", "domain used to deal with etcd, skydns, spartito and violino").Short('D').Default("maestro.io").String()
+	flagDomain         = app.Flag("domain", "domain used to deal with etcd, skydns, spartito and violino").Default("maestro.io").String()
 	flagFleetEndpoints = app.Flag("etcd", "etcd / fleet endpoints to connect").Short('e').String()
 	flagFleetOptions   = app.Flag("fleetopts", "fleetctl options").Short('F').Strings()
 	flagFleetAddress   = app.Flag("fleetaddr", "fleetctl tunnel address and port").Default("172.17.8.101").Short('A').String()
@@ -35,7 +35,7 @@ var (
 	flagExecArgs   = flagExec.Arg("args", "args to fleetclt command").Required().Strings()
 	flagEtcd       = app.Command("etcd", "get maestro related list of keys from etcd")
 	flagEtcdKey    = flagEtcd.Arg("name", "get one key").String()
-	flagEtcdSkydns = flagEtcd.Flag("skydns", "include skydns in the list of etcd keys").Short('d').Bool()
+	flagEtcdSkydns = flagEtcd.Flag("skydns", "include skydns in the list of etcd keys").Short('D').Bool()
 	flagEtcdAll    = flagEtcd.Flag("all", "get the list of all etcd keys").Short('a').Bool()
 
 	// app
@@ -92,8 +92,7 @@ func main() {
 	}
 
 	if exitCode != -1 {
-		fmt.Printf("global exit code: %d\n", exitCode)
-		os.Exit(exitCode)
+		maestro.HandleExit(exitCode)
 	}
 
 	// build maestro config
@@ -136,6 +135,5 @@ func main() {
 		}
 	}
 
-	fmt.Printf("global exit code: %d\n", exitCode)
-	os.Exit(exitCode)
+	maestro.HandleExit(exitCode)
 }
