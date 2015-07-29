@@ -99,7 +99,9 @@ func MaestroBuildNuke(unit string) (exitCode int) {
 // it will print a message and do nothing.
 func MaestroRun(unit string) (exitCode int) {
 	MaestroBuildLocalUnits()
-	return MaestroExecRun(FleetRunUnit, "", unit)
+	exitCode = MaestroExecRun(FleetRunUnit, "", unit)
+	lg.Out("check results with " + lg.b("maestro status") + "|" + lg.b("journal <unit name>"))
+	return
 }
 
 // Stops all units in the current app. It can stop also a single unit, using `unit` argument.

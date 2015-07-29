@@ -1,9 +1,9 @@
 package maestro
 
 import (
-	"html/template"
 	"os"
 	"strings"
+	"text/template"
 )
 
 // Return a string containing a template.
