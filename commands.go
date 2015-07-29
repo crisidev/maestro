@@ -1,4 +1,12 @@
-// Maestro: a solution to develop and manage unit files on coreos, gently stuffed with service autodiscovery, load balancing, automatic DNS and a nice build system.
+// Maestro is a development system able to build and deploy applications (docker images) on a distrubuted CoreOS cluster. Applications are described using a simple JSON configuration and converted into runnable Fleet units and all the burden about namespaces, DNS, container linking, etc is automatically handled by Maestro
+//
+// Prerequisites
+//
+// Install Vagrant and Fleetctl and Golang for your architecture.
+//
+// Installation and Usage
+//
+// Please read README.md for full installation instructions and usage.
 package maestro
 
 import (
