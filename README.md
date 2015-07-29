@@ -31,8 +31,7 @@ Maestro is a development system able to build and deploy applications (docker im
 * [Prometheus Container](https://github.com/crisidev/maestro-prometheus)
 * [Grafana Container](https://github.com/crisidev/maestro-grafana)
 
-#### GoDoc
-(https://godoc.org/github.com/crisidev/maestro)
+#### [GoDoc](https://godoc.org/github.com/crisidev/maestro)
 
 ### Prerequisites
 Install [Vagrant](https://www.vagrantup.com/) and [Fleetctl](https://github.com/coreos/fleet) and [Golang](https://golang.org/) for your architecture.
