@@ -3,7 +3,7 @@
 ## A smart deploy system for lazy software developers
 Maestro is a development system able to build and deploy applications (docker images) on a distrubuted CoreOS cluster. Applications are described using a simple JSON configuration and converted into runnable Fleet units and all the burden about namespaces, DNS, container linking, etc is automatically handled by Maestro
 
-##### Maestro is based on
+#### Maestro is based on
 * [Vagrant](https://www.vagrantup.com/)
 * [CoreOS](https://coreos.com/)
 * [Systemd](http://www.freedesktop.org/wiki/Software/systemd/)
@@ -16,13 +16,13 @@ Maestro is a development system able to build and deploy applications (docker im
 * [Confd](https://github.com/kelseyhightower/confd)
 * [Nginx](http://nginx.org/)
 
-##### Maestro is a set of tools written in
+#### Maestro is a set of tools written in
 * Golang
 * BASH
 * Make
 * HTML
 
-##### Maestro components / tools / docker containers
+#### Maestro components / tools / docker containers
 * [Spartito Container](https://github.com/crisidev/maestro-spartito)
 * [Violino Container](https://github.com/crisidev/maestro-violino)
 * [CoreOS Vagrant Registry](https://github.com/crisidev/maestro-vagrant-registry)
@@ -31,10 +31,13 @@ Maestro is a development system able to build and deploy applications (docker im
 * [Prometheus Container](https://github.com/crisidev/maestro-prometheus)
 * [Grafana Container](https://github.com/crisidev/maestro-grafana)
 
-#### Prerequisites
+#### GoDoc
+(https://godoc.org/github.com/crisidev/maestro)
+
+### Prerequisites
 Install [Vagrant](https://www.vagrantup.com/) and [Fleetctl](https://github.com/coreos/fleet) and [Golang](https://golang.org/) for your architecture.
 
-#### Installation
+### Installation
 ```sh
 $ git clone https://github.com/crisidev/maestro
 $ cd maestro
@@ -117,9 +120,9 @@ Commands:
   buildnuke [<name>]
     check status of a container build and registry push on the cluster
 ```
-#### Usage
+### Usage
 
-#### DNS Config
+### DNS Resolution In Details
 
 #### Configuration
 ##### A Basic Example
