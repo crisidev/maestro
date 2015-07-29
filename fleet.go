@@ -75,15 +75,17 @@ func FleetIsUnitRunning(unitPath string) (ret bool) {
 
 // Checks if a unit path is valid, either build unit and run unit.
 func FleetCheckPath(unitPath string) {
-	if strings.Contains(unitPath, "@") {
-		split := strings.Split(unitPath, "@")
-		unitPath = fmt.Sprintf("%s@.service", split[0])
+	if strings.Contains(unitPath, "/") {
+		if strings.Contains(unitPath, "@") {
+			split := strings.Split(unitPath, "@")
+			unitPath = fmt.Sprintf("%s@.service", split[0])
+		}
+		if _, err := os.Stat(unitPath); err != nil {
+			lg.Debug2("invalid unit or maybe you forgot to run ", "maestro build", fleetctl)
+			lg.Fatal(err)
+		}
+		lg.Debug("unit "+unitPath+" is valid", fleetctl)
 	}
-	if _, err := os.Stat(unitPath); err != nil {
-		lg.Debug2("invalid unit or maybe you forgot to run ", "maestro build", fleetctl)
-		lg.Fatal(err)
-	}
-	lg.Debug("unit "+unitPath+" is valid", fleetctl)
 }
 
 // Function able to run a command on a unit path. Output is processed and printed
@@ -105,11 +107,11 @@ func FleetExecCommand(cmd, unitPath string) (exitCode int) {
 		}
 	}
 	go FleetExec(append(args, unitPath), output, exit)
+	exitCode += FleetProcessOutput(output, exit)
 	if exitCode == 3 && (cmd == "status" || strings.HasPrefix(cmd, "journal")) {
 		lg.Debug("please wait, unit " + unitPath + " is starting")
 		exitCode = 0
 	}
-	exitCode += FleetProcessOutput(output, exit)
 	return
 }
 

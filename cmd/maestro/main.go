@@ -67,17 +67,38 @@ var (
 	flagBuildNukeUnit   = flagBuildNuke.Arg("name", "restrict to one component").String()
 )
 
-func main() {
-	var exitCode int
-	args, err := app.Parse(os.Args[1:])
-	if err != nil {
-		fmt.Printf("error: %s\n", err.Error())
-		os.Exit(1)
+// Command switch for commands requiring a config to be loaded
+func ConfigCommandSwitch(args string, err error) (exitCode int) {
+	config = maestro.BuildMaestroConfig(*flagConfigFile)
+	switch kingpin.MustParse(args, err) {
+	case flagConfig.FullCommand():
+		config.Print()
+	case flagUser.FullCommand():
+		config.GetUsername()
+	case flagBuildUnits.FullCommand():
+		maestro.MaestroBuildLocalUnits()
+	case flagBuildImages.FullCommand():
+		exitCode = maestro.MaestroBuildContainers(*flagBuildImagesUnit)
+	case flagBuildStatus.FullCommand():
+		exitCode = maestro.MaestroBuildStatus(*flagBuildStatusUnit)
+	case flagBuildNuke.FullCommand():
+		exitCode = maestro.MaestroBuildNuke(*flagBuildNukeUnit)
+	case flagStatus.FullCommand():
+		exitCode = maestro.MaestroStatus("")
+	case flagJournal.FullCommand():
+		exitCode = maestro.MaestroJournal("", false, false)
+	case flagRun.FullCommand():
+		exitCode = maestro.MaestroRun(*flagRunUnit)
+	case flagStop.FullCommand():
+		exitCode = maestro.MaestroStop("")
+	case flagNuke.FullCommand():
+		exitCode = maestro.MaestroNuke("")
 	}
-	// initialize maestro
-	maestro.Init(*flagMaestroDir, *flagDomain, *flagFleetAddress,
-		*flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
+	return
+}
 
+// Initial switch for commands not requiring a configuration
+func NoConfigCommandSwitch(args string, err error) (exitCode int) {
 	exitCode = -1
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case flagCoreStatus.FullCommand():
@@ -89,51 +110,42 @@ func main() {
 		exitCode = maestro.FleetProcessOutput(output, exit)
 	case flagEtcd.FullCommand():
 		exitCode = maestro.EtcdPullKeys(*flagEtcdSkydns, *flagEtcdAll, *flagEtcdKey)
+	case flagNuke.FullCommand():
+		if *flagNukeAll {
+			exitCode = maestro.MaestroNukeAll()
+		} else if *flagNukeUnit != "" {
+			exitCode = maestro.MaestroNuke(*flagNukeUnit)
+		}
+	case flagStatus.FullCommand():
+		if *flagStatusUnit != "" {
+			exitCode = maestro.MaestroStatus(*flagStatusUnit)
+		}
+	case flagJournal.FullCommand():
+		if *flagJournalUnit != "" {
+			exitCode = maestro.MaestroJournal(*flagJournalUnit, *flagJournalFollow, *flagJournalAll)
+		}
+	case flagStop.FullCommand():
+		if *flagStopUnit != "" {
+			exitCode = maestro.MaestroStop(*flagStopUnit)
+		}
 	}
+	return
+}
 
+func main() {
+	args, err := app.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Printf("error: %s\n", err.Error())
+		os.Exit(1)
+	}
+	// initialize maestro
+	maestro.Init(*flagMaestroDir, *flagDomain, *flagFleetAddress,
+		*flagVolumesDir, *flagFleetEndpoints, *flagFleetOptions, *flagDebug)
+
+	exitCode := NoConfigCommandSwitch(args, err)
 	if exitCode != -1 {
 		maestro.HandleExit(exitCode)
 	}
 
-	// build maestro config
-	config = maestro.BuildMaestroConfig(*flagConfigFile)
-
-	exitCode = 0
-	// command switch
-	switch kingpin.MustParse(args, err) {
-
-	// info
-	case flagConfig.FullCommand():
-		config.Print()
-	case flagUser.FullCommand():
-		config.GetUsername()
-
-	// build
-	case flagBuildUnits.FullCommand():
-		maestro.MaestroBuildLocalUnits()
-	case flagBuildImages.FullCommand():
-		exitCode = maestro.MaestroBuildContainers(*flagBuildImagesUnit)
-	case flagBuildStatus.FullCommand():
-		exitCode = maestro.MaestroBuildStatus(*flagBuildStatusUnit)
-	case flagBuildNuke.FullCommand():
-		exitCode = maestro.MaestroBuildNuke(*flagBuildNukeUnit)
-
-	// exec
-	case flagStatus.FullCommand():
-		exitCode = maestro.MaestroStatus(*flagStatusUnit)
-	case flagJournal.FullCommand():
-		exitCode = maestro.MaestroJournal(*flagJournalUnit, *flagJournalFollow, *flagJournalAll)
-	case flagRun.FullCommand():
-		exitCode = maestro.MaestroRun(*flagRunUnit)
-	case flagStop.FullCommand():
-		exitCode = maestro.MaestroStop(*flagStopUnit)
-	case flagNuke.FullCommand():
-		if *flagNukeAll {
-			exitCode += maestro.MaestroNukeAll()
-		} else {
-			exitCode = maestro.MaestroNuke(*flagNukeUnit)
-		}
-	}
-
-	maestro.HandleExit(exitCode)
+	maestro.HandleExit(ConfigCommandSwitch(args, err))
 }

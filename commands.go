@@ -55,17 +55,16 @@ func MaestroExecBuild(fn MaestroCommand, cmd, unit string) (exitCode int) {
 
 // Exec an arbitrary function on a run unit
 func MaestroExecRun(fn MaestroCommand, cmd, unit string) (exitCode int) {
-	for _, stage := range config.Stages {
-		for _, component := range stage.Components {
-			for i := 1; i < component.Scale+1; i++ {
-				if unit != "" {
-					if cmd == "status" {
-						lg.Out(lg.b("maestro ") + "unit: " + unit)
-					}
-					localPath := path.Join(config.GetAppPath(stage.Name), unit)
-					exitCode += fn(cmd, localPath)
-					return
-				} else {
+	if unit != "" {
+		if cmd == "status" {
+			lg.Out(lg.b("maestro ") + "unit: " + unit)
+		}
+		exitCode += fn(cmd, unit)
+		return
+	} else {
+		for _, stage := range config.Stages {
+			for _, component := range stage.Components {
+				for i := 1; i < component.Scale+1; i++ {
 					if cmd == "status" {
 						lg.Out(lg.b("maestro ") + "unit: " + component.UnitName + strconv.Itoa(i))
 					}
@@ -155,6 +154,7 @@ func MaestroNukeAll() (exitCode int) {
 	text, _ := reader.ReadString('\n')
 	if text == "y\n" || text == "Y\n" {
 		go FleetExec([]string{"list-unit-files"}, output, exit)
+		exitCode = <-exit
 		for line := range output {
 			if strings.Contains(line, "service") {
 				split := strings.Fields(line)
@@ -165,7 +165,6 @@ func MaestroNukeAll() (exitCode int) {
 			}
 		}
 	}
-	exitCode = <-exit
 	return
 }
 
