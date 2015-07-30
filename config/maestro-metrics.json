@@ -15,7 +15,7 @@
         },
         {
           "name": "grafana",
-          "dns": "grafana",
+          "dns": "metrics",
           "frontend": true,
           "src": "hub.maestro.io:5000/crisidev/grafana",
           "gitsrc": "https://github.com/crisidev/maestro-grafana",
