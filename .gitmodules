@@ -16,3 +16,6 @@
 [submodule "containers/maestro-grafana"]
 	path = containers/maestro-grafana
 	url = git@github.com:crisidev/maestro-grafana.git
+[submodule "containers/maestro-currentweather"]
+	path = containers/maestro-currentweather
+	url = https://github.com/crisidev/maestro-currentweather
