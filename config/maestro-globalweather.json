@@ -1,0 +1,32 @@
+{
+  "username": "giantswarm",
+  "app": "globalweather",
+  "stages": [
+    {
+      "name": "prod",
+      "components": [
+        {
+          "name": "redis",
+          "global": true,
+          "src": "redis",
+          "ports": [6379]
+        },
+        {
+          "after": "redis",
+          "name": "weather",
+          "frontend": true,
+          "global": true,
+          "dns": "giantswarm-globalweather",
+          "src": "hub.maestro.io:5000/giantswarm/currentweather",
+          "gitsrc": "https://github.com/crisidev/maestro-currentweather",
+          "ports": [8080],
+          "cmd": "currentweather",
+          "env": [
+            "REDIS_PORT_6379_TCP_ADDR=redis.globalweather.prod.giantswarm.maestro.io",
+            "REDIS_PORT_6379_TCP_PORT=6379"
+          ]
+        }
+      ]
+    }
+  ]
+}
