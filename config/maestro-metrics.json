@@ -22,12 +22,13 @@
           "ports": [3001]
         },
         {
-          "name": "container-exporter",
+          "name": "cadvisor",
           "frontend": true,
           "global": true,
-          "src": "prom/container-exporter",
-          "ports": [9104],
-          "docker_args": "-v /sys/fs/cgroup:/cgroup -v /var/run/docker.sock:/var/run/docker.sock"
+          "dns": "cadvisor",
+          "src": "google/cadvisor:latest",
+          "ports": [8080],
+          "docker_args": "-v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro"
         },
         {
           "name": "node-exporter",
