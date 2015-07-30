@@ -122,7 +122,6 @@ func FleetBuildUnit(_, unitPath string) (exitCode int) {
 	for _, cmd := range cmds {
 		exitCode += FleetExecCommand(cmd, unitPath)
 	}
-	lg.Out("check results with " + lg.b("maestro buildstatus <unit name>"))
 	return
 }
 
