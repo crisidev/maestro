@@ -98,7 +98,6 @@ func FleetExecCommand(cmd, unitPath string) (exitCode int) {
 	args = []string{cmd}
 	if cmd == "status" || strings.HasPrefix(cmd, "journal") {
 		if strings.HasPrefix(cmd, "journal") {
-			args = []string{"journal"}
 			if cmd == "journalf" {
 				args = append(args, "-f")
 			} else if cmd == "journala" {

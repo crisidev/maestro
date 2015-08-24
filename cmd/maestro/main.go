@@ -86,7 +86,7 @@ func ConfigCommandSwitch(args string, err error) (exitCode int) {
 	case flagStatus.FullCommand():
 		exitCode = maestro.MaestroStatus("")
 	case flagJournal.FullCommand():
-		exitCode = maestro.MaestroJournal("", false, false)
+		exitCode = maestro.MaestroJournal("", *flagJournalFollow, *flagJournalAll)
 	case flagRun.FullCommand():
 		exitCode = maestro.MaestroRun(*flagRunUnit)
 	case flagStop.FullCommand():
